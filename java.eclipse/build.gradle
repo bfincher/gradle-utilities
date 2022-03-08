@@ -1,0 +1,58 @@
+plugins {
+    id 'java-gradle-plugin'
+    id 'maven-publish'
+    id "net.researchgate.release" version "2.6.0"
+}
+
+group = 'fincher'
+
+gradlePlugin {
+	plugins {
+		java {
+			id = "fincher.java.eclipse"
+			implementationClass = "com.fincher.gradle.eclipse.EclipseSettings"
+		}
+	}
+}
+
+repositories {
+    mavenLocal()
+    if (project.hasProperty('localNexus')) {
+        maven {
+            url "${localNexus}"
+            allowInsecureProtocol = true
+        }
+    } else {
+        mavenCentral()
+    }
+}
+
+publishing {
+
+    repositories {
+        maven {
+            credentials {
+                username = "${publishUsername}"
+                password = "${publishPassword}"
+            }
+		
+            if (project.version.endsWith('-SNAPSHOT')) {
+                url "${publishSnapshotUrl}"
+            } else {
+                url "${publishReleaseUrl}repositories/releases"
+            }
+
+            allowInsecureProtocol = true
+
+            authentication {
+                basic(BasicAuthentication)
+            }
+        }
+    }
+}
+
+release {
+    git {
+        requireBranch = ''
+    }
+}
