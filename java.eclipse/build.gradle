@@ -5,10 +5,12 @@ plugins {
 }
 
 group = 'fincher'
+sourceCompatibility = 1.17
+targetCompatibility = 1.17
 
 gradlePlugin {
 	plugins {
-		java {
+		eclipse {
 			id = "fincher.java.eclipse"
 			implementationClass = "com.fincher.gradle.eclipse.EclipseSettings"
 		}
