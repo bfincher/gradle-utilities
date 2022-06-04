@@ -1,0 +1,66 @@
+    buildscript {
+        repositories {
+            maven {
+                url "https://plugins.gradle.org/m2/"
+            }
+        }
+
+        dependencies {
+            classpath "net.researchgate:gradle-release:2.8.1"
+        }
+    }
+
+allprojects {
+    group = 'fincher'
+    version = '0.0.5-SNAPSHOT'
+
+}
+
+subprojects {
+
+
+    apply plugin: 'java-gradle-plugin'
+    apply plugin: 'maven-publish'
+    apply plugin: "net.researchgate.release"
+
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+
+    repositories {
+        mavenLocal()
+        if (project.hasProperty('localNexus')) {
+            maven {
+                url "${localNexus}"
+            }
+        } else {
+            mavenCentral()
+        }
+    }
+
+    publishing {
+        repositories {
+            maven {
+                credentials {
+                    username = "${publishUsername}"
+                    password = "${publishPassword}"
+                }
+		
+                if (project.version.endsWith('-SNAPSHOT')) {
+                    url "${publishSnapshotUrl}"
+                } else {
+                    url "${publishReleaseUrl}"
+                }
+
+                authentication {
+                    basic(BasicAuthentication)
+                }
+            }
+        }
+    }
+
+    release {
+        git {
+            requireBranch = ''
+        }
+    }
+}

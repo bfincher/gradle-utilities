@@ -1,0 +1,2 @@
+include 'java.eclipse'
+include 'java.checkstyle.plugin'
