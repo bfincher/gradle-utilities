@@ -1,6 +1,5 @@
 def performRelease = false
-def gradleOpts = """--info 
-                    -s 
+def gradleOpts = """-s 
                     --build-cache
                     -PlocalNexus=https://nexus.fincherhome.com/nexus/content/groups/public 
                     -PpublishUsername=upload -PpublishPassword=upload 
