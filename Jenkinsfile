@@ -2,7 +2,6 @@ def performRelease = false
 def gradleOpts = "-s"
 gradleOpts += " --build-cache"
 gradleOpts += " -PlocalNexus=https://nexus.fincherhome.com/nexus/content/groups/public"
-gradleOpts += " -PpublishUsername=upload -PpublishPassword=upload"
 gradleOpts += " -PpublishSnapshotUrl=https://nexus.fincherhome.com/nexus/content/repositories/snapshots"
 gradleOpts += " -PpublishReleaseUrl=https://nexus.fincherhome.com/nexus/content/repositories/releases"
 
@@ -50,7 +49,9 @@ pipeline {
 		
         stage('Publish') {
             steps {
-                sh './gradlew publish ' + gradleOpts
+                withCredentials([usernamePassword(credentialsId: 'nexus.fincherhome.com', usernameVariable: 'publishUsername', passwordVariable: 'publishPassword')]) {
+                    sh './gradlew publish ' + gradleOpts
+                }
             }
         }
 
