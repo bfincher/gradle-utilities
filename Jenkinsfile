@@ -1,10 +1,10 @@
 def performRelease = false
-def gradleOpts = """-s 
+def gradleOpts = """-s
                  |--build-cache
                  |-PlocalNexus=https://nexus.fincherhome.com/nexus/content/groups/public
                  |-PpublishUsername=upload -PpublishPassword=upload
                  |-PpublishSnapshotUrl=https://nexus.fincherhome.com/nexus/nexus/content/repositories/snapshots
-                 |-PpublishReleaseUrl=https://nexus.fincherhome.com/nexus/nexus/content/repositories/releases""".stripMargin() 
+                 |-PpublishReleaseUrl=https://nexus.fincherhome.com/nexus/nexus/content/repositories/releases""".stripMargin()
 
 properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '10')), 
 disableConcurrentBuilds(), pipelineTriggers([[$class: 'PeriodicFolderTrigger', interval: '1d']])])
