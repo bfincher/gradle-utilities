@@ -3,8 +3,8 @@ def gradleOpts = "-s"
 gradleOpts += " --build-cache"
 gradleOpts += " -PlocalNexus=https://nexus.fincherhome.com/nexus/content/groups/public"
 gradleOpts += " -PpublishUsername=upload -PpublishPassword=upload"
-gradleOpts += " -PpublishSnapshotUrl=https://nexus.fincherhome.com/nexus/nexus/content/repositories/snapshots"
-gradleOpts += " -PpublishReleaseUrl=https://nexus.fincherhome.com/nexus/nexus/content/repositories/releases"
+gradleOpts += " -PpublishSnapshotUrl=https://nexus.fincherhome.com/nexus/content/repositories/snapshots"
+gradleOpts += " -PpublishReleaseUrl=https://nexus.fincherhome.com/nexus/content/repositories/releases"
 
 properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '10')), 
 disableConcurrentBuilds(), pipelineTriggers([[$class: 'PeriodicFolderTrigger', interval: '1d']])])
