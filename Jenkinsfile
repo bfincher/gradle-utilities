@@ -43,7 +43,7 @@ pipeline {
         stage('Release') {
             when { expression { performRelease } }
             steps {
-                sh "./gradlew release -Prelease.releaseVersion=${params.release} -Prelease.newVersion=${params.release}-SNAPSHOT " + gradleOpts
+                sh "./gradlew release -Prelease.useAutomaticVersion=true -Prelease.releaseVersion=${params.release} " + gradleOpts
             }
         }
 		
