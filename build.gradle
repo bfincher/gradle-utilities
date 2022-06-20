@@ -12,8 +12,6 @@
 
 allprojects {
     group = 'fincher'
-    version = '0.0.5-SNAPSHOT'
-
 }
 
 subprojects {
