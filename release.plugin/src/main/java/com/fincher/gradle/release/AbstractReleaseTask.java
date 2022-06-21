@@ -2,12 +2,16 @@ package com.fincher.gradle.release;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.ObjectInputFilter.Status;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFile;
@@ -16,10 +20,6 @@ import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.options.Option;
 import org.gradle.internal.impldep.org.eclipse.jgit.api.Git;
-import org.gradle.internal.impldep.org.eclipse.jgit.api.Status;
-import org.gradle.internal.impldep.org.eclipse.jgit.api.errors.GitAPIException;
-import org.gradle.internal.impldep.org.eclipse.jgit.lib.Repository;
-import org.gradle.internal.impldep.org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
 public abstract class AbstractReleaseTask extends DefaultTask {
 
@@ -76,8 +76,8 @@ public abstract class AbstractReleaseTask extends DefaultTask {
 		System.out.println(versionLinePatternStr);
 		versionLinePattern = Pattern.compile(versionLinePatternStr);
 		
-		repo = new FileRepositoryBuilder().setGitDir(baseGitRepoDir).build();
-		git = new Git(repo);
+		repo = initGitRepo();
+		git = initGit(repo);
 		
 		Status status = git.status().call();
 		if (status.hasUncommittedChanges()) {
@@ -108,6 +108,15 @@ public abstract class AbstractReleaseTask extends DefaultTask {
 		Matcher matcher = getVersion();
 		String replacement = matcher.replaceFirst(newVersion);
 		Files.writeString(versionFile, replacement);
+	}
+	
+	
+	protected Repository initGitRepo() throws IOException {
+		return new FileRepositoryBuilder().setGitDir(baseGitRepoDir).build();
+	}
+	
+	protected Git initGit(Repository repo) {
+		return new Git(repo);
 	}
 
 }

@@ -19,10 +19,13 @@ subprojects {
 
     apply plugin: 'java-gradle-plugin'
     apply plugin: 'maven-publish'
-    apply plugin: "net.researchgate.release"
+    apply plugin: 'eclipse'
 
-    sourceCompatibility = 1.8
-    targetCompatibility = 1.8
+    java {
+    	toolchain {
+        	languageVersion = JavaLanguageVersion.of(11)
+    	}
+	}
 
     repositories {
         mavenLocal()
@@ -34,31 +37,27 @@ subprojects {
             mavenCentral()
         }
     }
-
+	
     publishing {
         repositories {
             maven {
-                credentials {
-                    username = "${publishUsername}"
-                    password = "${publishPassword}"
-                }
+                if (project.hasProperty("publishUsername") && project.hasProperty("publishPassword")) { 
+                    credentials {
+                        username = "${publishUsername}"
+                        password = "${publishPassword}"
+                    }
 		
-                if (project.version.endsWith('-SNAPSHOT')) {
-                    url "${publishSnapshotUrl}"
-                } else {
-                    url "${publishReleaseUrl}"
-                }
+                    if (project.version.endsWith('-SNAPSHOT')) {
+                        url "${publishSnapshotUrl}"
+                    } else {
+                        url "${publishReleaseUrl}"
+                    }
 
-                authentication {
-                    basic(BasicAuthentication)
+                    authentication {
+                        basic(BasicAuthentication)
+                    }
                 }
             }
-        }
-    }
-
-    release {
-        git {
-            requireBranch = ''
         }
     }
 }

@@ -9,7 +9,7 @@ import org.gradle.internal.impldep.org.eclipse.jgit.api.errors.GitAPIException;
 
 import com.fincher.gradle.release.ReleaseExtention.ReleaseType;
 
-public abstract class PrepareReleaseTask extends AbstractReleaseTask {
+public class PrepareReleaseTask extends AbstractReleaseTask {
 
 	private ReleaseType releaseType;
 	private String tagPrefix = "";
@@ -35,7 +35,7 @@ public abstract class PrepareReleaseTask extends AbstractReleaseTask {
 	}
 
 	@Override
-	public void releaseTaskAction() throws IOException {
+	public void releaseTaskAction() throws IOException, GitAPIException {
 		super.releaseTaskAction();
 
 		try {
