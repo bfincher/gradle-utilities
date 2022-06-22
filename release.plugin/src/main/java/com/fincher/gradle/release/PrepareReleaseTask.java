@@ -3,13 +3,13 @@ package com.fincher.gradle.release;
 import java.io.IOException;
 import java.util.regex.Matcher;
 
+import org.eclipse.jgit.api.errors.GitAPIException;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.options.Option;
-import org.gradle.internal.impldep.org.eclipse.jgit.api.errors.GitAPIException;
 
 import com.fincher.gradle.release.ReleaseExtention.ReleaseType;
 
-public class PrepareReleaseTask extends AbstractReleaseTask {
+public abstract class PrepareReleaseTask extends AbstractReleaseTask {
 
 	private ReleaseType releaseType;
 	private String tagPrefix = "";
@@ -43,21 +43,20 @@ public class PrepareReleaseTask extends AbstractReleaseTask {
 			String major = oldVersionMatcher.group("major");
 			String minor = oldVersionMatcher.group("minor");
 			String patch = oldVersionMatcher.group("patch");
-			String suffix = oldVersionMatcher.group("suffix");
 
 			String newVersion;
 
 			switch (getReleaseType()) {
 			case MAJOR:
-				newVersion = String.format("%s.%s.%s%s", Integer.parseInt(major) + 1, minor, patch, suffix);
+				newVersion = String.format("%s.0.0", Integer.parseInt(major) + 1);
 				break;
 
 			case MINOR:
-				newVersion = String.format("%s.%s.%s%s", major, Integer.parseInt(minor) + 1, patch, suffix);
+				newVersion = String.format("%s.%s.0", major, Integer.parseInt(minor) + 1);
 				break;
 
 			case PATCH:
-				newVersion = String.format("%s.%s.%s%s", major, minor, Integer.parseInt(patch) + 1, suffix);
+				newVersion = String.format("%s.%s.%s", major, minor, Integer.parseInt(patch) + 1);
 				break;
 
 			default:

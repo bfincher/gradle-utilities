@@ -3,14 +3,8 @@
  */
 package com.fincher.gradle.release;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
-import java.io.IOException;
-
-import org.gradle.api.Project;
 import org.gradle.internal.impldep.org.eclipse.jgit.api.Git;
 import org.gradle.internal.impldep.org.eclipse.jgit.lib.Repository;
-import org.gradle.testfixtures.ProjectBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -41,13 +35,13 @@ public class AbstractReleaseTaskTest {
 //		assertNotNull(project.getTasks().findByName("greeting"));
 	}
 	
-	class TestClass extends AbstractReleaseTask {
-		protected Repository initGitRepo() throws IOException {
-			return repo;
-		}
-		
-		protected Git initGit(Repository repo) {
-			return git;
-		}
-	}
+//	class TestClass extends AbstractReleaseTask {
+//		protected Repository initGitRepo() throws IOException {
+//			return repo;
+//		}
+//		
+//		protected Git initGit(Repository repo) {
+//			return git;
+//		}
+//	}
 }
