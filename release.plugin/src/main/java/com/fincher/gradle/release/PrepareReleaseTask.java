@@ -39,33 +39,35 @@ public abstract class PrepareReleaseTask extends AbstractReleaseTask {
 		super.releaseTaskAction();
 
 		try {
-			Matcher oldVersionMatcher = getVersion();
-			String major = oldVersionMatcher.group("major");
-			String minor = oldVersionMatcher.group("minor");
-			String patch = oldVersionMatcher.group("patch");
-
-			String newVersion;
+			Matcher matcher = getVersion();
+			String major = matcher.group("major");
+			String minor = matcher.group("minor");
+			String patch = matcher.group("patch");						
 
 			switch (getReleaseType()) {
 			case MAJOR:
-				newVersion = String.format("%s.0.0", Integer.parseInt(major) + 1);
+				major = String.valueOf(Integer.parseInt(major) + 1);
+				minor = "0";
+				patch = "0";
 				break;
 
 			case MINOR:
-				newVersion = String.format("%s.%s.0", major, Integer.parseInt(minor) + 1);
+				minor = String.valueOf(Integer.parseInt(minor) + 1);
+				patch = "0";
 				break;
 
 			case PATCH:
-				newVersion = String.format("%s.%s.%s", major, minor, Integer.parseInt(patch) + 1);
+				patch = String.valueOf(Integer.parseInt(patch) + 1);
 				break;
 
 			default:
 				throw new IllegalStateException();
 			}
 
-			replaceVersion(newVersion);
+			replaceVersion(major, minor, patch, "");
 
 			git.add().addFilepattern(versionFile.toString()).call();
+			String newVersion = String.format("%s.%s.%s", major, minor, patch);
 			git.commit().setMessage(String.format("\"Set version for release to %s\"", newVersion));
 			
 			String tag = getTagPrefix() + newVersion;

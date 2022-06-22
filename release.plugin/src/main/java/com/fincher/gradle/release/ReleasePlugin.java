@@ -14,12 +14,14 @@ public class ReleasePlugin implements Plugin<Project> {
 	
 	public void apply(Project project) {
 		
-		ReleaseExtention extension = project.getExtensions().create("releaseData", ReleaseExtention.class);
+		ReleaseExtention extension = project.getExtensions().create("release", ReleaseExtention.class);
 		
-		extension.getVersionFile().convention(project.getLayout().getProjectDirectory().file("gradle.properties"));
+		extension.getVersionFile().convention(new File(project.getProjectDir(), "gradle.properties"));
 		extension.getVersionKeyValue().convention("version");
 		
-		project.getTasks().register("prepareRelease", PrepareReleaseTask.class);
+		project.getTasks().register("prepareRelease", PrepareReleaseTask.class, task -> {
+			task.getVersionFile().set(extension.getVersionFile().get().toPath());
+		});
 		
         /*
 		PluginContainer plugins = project.getPlugins();
@@ -42,14 +44,14 @@ public class ReleasePlugin implements Plugin<Project> {
             */
 	}
 
-	private File getVersionFile(Project project, ReleaseExtention extension) {
-		File defaultValue = new File(project.getProjectDir(), "settings.gradle");
-
-		RegularFileProperty property = extension.getVersionFile();
-		if (property == null) {
-			return defaultValue;
-		}
-
-		return property.get().getAsFile();
-	}
+//	private File getVersionFile(Project project, ReleaseExtention extension) {
+//		File defaultValue = new File(project.getProjectDir(), "settings.gradle");
+//
+//		RegularFileProperty property = extension.getVersionFile();
+//		if (property == null) {
+//			return defaultValue;
+//		}
+//
+//		return property.get().getAsFile();
+//	}
 }

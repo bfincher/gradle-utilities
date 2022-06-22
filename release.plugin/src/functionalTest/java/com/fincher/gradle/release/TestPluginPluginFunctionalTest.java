@@ -22,6 +22,8 @@ import org.gradle.testkit.runner.GradleRunner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.google.common.collect.Lists;
+
 /**
  * A simple functional test for the 'testPlugin.greeting' plugin.
  */
@@ -36,13 +38,13 @@ class TestPluginPluginFunctionalTest {
 	private Path settingsFile;
 
 	private Path gradlePropertiesFile;
-	
+
 	private Path versionFile;
 
 	private GradleRunner runner;
 
 	private List<String> runnerArguments;
-	
+
 	private String versionKeyValue;
 
 	@BeforeEach
@@ -62,12 +64,12 @@ class TestPluginPluginFunctionalTest {
 		runner.forwardOutput();
 		runner.withPluginClasspath();
 		runner.withProjectDir(projectDir.toFile());
-		
+
 		versionKeyValue = "version";
 
-		writeString(settingsFile, "");
-		writeString(buildFile, "plugins {" + "  id('fincher.release')" + "}");
-		writeString(gradlePropertiesFile, versionKeyValue + " = 0.0.1-SNAPSHOT");			
+		Files.writeString(settingsFile, "");
+		Files.writeString(buildFile, "plugins {" + "  id('fincher.release')" + "}");
+		Files.writeString(gradlePropertiesFile, versionKeyValue + " = 0.0.1-SNAPSHOT");
 	}
 
 	@Test
@@ -80,7 +82,7 @@ class TestPluginPluginFunctionalTest {
 
 		verifyPrepareReleaseResults("1.0.0");
 	}
-	
+
 	@Test
 	void testMinorRelease() throws IOException {
 		runnerArguments.add("prepareRelease");
@@ -91,7 +93,7 @@ class TestPluginPluginFunctionalTest {
 
 		verifyPrepareReleaseResults("0.1.0");
 	}
-	
+
 	@Test
 	void testPatchRelease() throws IOException {
 		runnerArguments.add("prepareRelease");
@@ -103,14 +105,41 @@ class TestPluginPluginFunctionalTest {
 		verifyPrepareReleaseResults("0.0.2");
 	}
 
+	@Test
+	void testVersionFileOverride() throws IOException{
+		
+		versionFile = buildFile;
+		
+		Files.write(buildFile, Lists.newArrayList("plugins {",
+				"  id('fincher.release')",
+				"}",
+				"",
+				"release {",
+				"    versionFile = file('build.gradle')",
+				"}",
+				"",
+				"version='0.0.1'"));
+		
+		
+		runnerArguments.add("prepareRelease");
+		runnerArguments.add("--releaseType");
+		runnerArguments.add("MAJOR");
+
+		runner.withArguments(runnerArguments).build();
+		
+		String originalVersion = getVersionFromFile();
+
+		verifyPrepareReleaseResults("1.0.0");
+	}
+
 	private void verifyPrepareReleaseResults(String expectedVersion) throws IOException {
 		String version = getVersionFromFile();
 		assertEquals(expectedVersion, version);
-		
+
 	}
-	
+
 	private String getVersionFromFile() throws IOException {
-		Matcher m =  AbstractReleaseTask.getVersion(versionFile, versionKeyValue);
+		Matcher m = AbstractReleaseTask.getVersion(versionFile, versionKeyValue);
 		return m.group("version");
 	}
 
@@ -118,10 +147,6 @@ class TestPluginPluginFunctionalTest {
 		Git git = Git.init().setDirectory(gitRepoDir.toFile()).call();
 		git.add().addFilepattern("build.gradle").addFilepattern("settings.gradle").call();
 		git.commit().setMessage("initial commit").call();
-	}
-
-	private void writeString(Path file, String string) throws IOException {
-		Files.writeString(file, string);
 	}
 
 	private static Path createProjectDir() throws IOException {

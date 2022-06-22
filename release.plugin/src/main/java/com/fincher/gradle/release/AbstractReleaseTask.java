@@ -15,6 +15,7 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.InputDirectory;
+import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.TaskAction;
@@ -22,7 +23,7 @@ import org.gradle.internal.impldep.com.google.api.client.repackaged.com.google.c
 
 public abstract class AbstractReleaseTask extends DefaultTask {
 
-	private static final String versionPatternStr = "(?<version>(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?<suffix>.*))";
+	private static final String versionPatternStr = "(?<version>[\'\"]?(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?<suffix>[a-zA-Z0-9_-]*)[\'\"]?)";
 
 	protected Path versionFile;
 	private String versionKeyValue = "version";
@@ -30,7 +31,7 @@ public abstract class AbstractReleaseTask extends DefaultTask {
 	protected Git git;
 
 	public AbstractReleaseTask() {
-		versionFile = new File(getProject().getProjectDir(), "gradle.properties").toPath();
+//		versionFile = new File(getProject().getProjectDir(), "gradle.properties").toPath();
 	}
 
 //	@Option(option = "versionFile", description = "The file that contains the project's version")
@@ -58,11 +59,18 @@ public abstract class AbstractReleaseTask extends DefaultTask {
 	@InputDirectory
 	@Optional
 	public abstract Property<File> getBaseRepoDir();
+	
+	@InputFile
+	@Optional
+	public abstract Property<Path> getVersionFile();
 
 	@TaskAction
 	public void releaseTaskAction() throws GitAPIException, IOException {
 		repo = initGitRepo();
 		git = initGit(repo);
+		
+		versionFile = getVersionFile().getOrElse(new File(getProject().getProjectDir(), "gradle.properties").toPath());
+		System.err.println("versionFile = " + versionFile);
 
 		Status status = git.status().call();
 		if (status.hasUncommittedChanges()) {
@@ -92,11 +100,22 @@ public abstract class AbstractReleaseTask extends DefaultTask {
 		System.err.println(errorMsg);
 		throw new IllegalStateException(errorMsg);
 	}
+	
+	protected static String replaceGroup(String source, Matcher matcher, String group, String replacement) {
+		return new StringBuilder(source).replace(matcher.start(group), matcher.end(group), replacement).toString();
+	}
 
-	protected void replaceVersion(String newVersion) throws IOException {
+	protected void replaceVersion(String newMajor, String newMinor, String newPatch, String newSuffix) throws IOException {
 		Matcher matcher = getVersion();
-		String replacement = matcher.replaceFirst(newVersion);
-		Files.writeString(versionFile, matcher.group("versionPrefix") + replacement);
+		String newVersion = replaceGroup(matcher.group(), matcher, "major", newMajor);
+		newVersion = replaceGroup(newVersion, matcher, "minor", newMinor);
+		newVersion = replaceGroup(newVersion, matcher, "patch", newPatch);
+		newVersion = replaceGroup(newVersion, matcher, "suffix", newSuffix);
+		
+		
+//		String versionPrefix = matcher.group("versionPrefix");
+//		String replacement = matcher.replaceFirst(versionPrefix + newVersion);
+		Files.writeString(versionFile, newVersion);
 	}
 
 	protected Repository initGitRepo() throws IOException {
