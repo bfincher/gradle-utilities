@@ -22,6 +22,7 @@ public class ReleasePlugin implements Plugin<Project> {
 			setTaskPropertyFromExtension(extension.getVersionFile(), task::getVersionFile);
 			setTaskPropertyFromExtension(extension.getVersionKeyValue(), task::getVersionKeyValue);
 			setTaskPropertyFromExtension(extension.getRequiredBranchRegex(), task::getRequiredBranchRegex);
+			setTaskPropertyFromExtension(extension.getTagPrefix(), task::getTagPrefix);
 		});
 
 		project.getTasks().register("finalizeRelease", FinalizeReleaseTask.class, task -> {

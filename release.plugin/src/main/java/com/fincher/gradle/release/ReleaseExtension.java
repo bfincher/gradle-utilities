@@ -16,5 +16,8 @@ public abstract class ReleaseExtension {
 	
 	@Input
 	public abstract Property<String> getRequiredBranchRegex();
+	
+	@Input
+	public abstract Property<String> getTagPrefix();
 
 }

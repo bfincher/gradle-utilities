@@ -76,7 +76,7 @@ class TestReleasePluginFunctionalTest {
 
 	@Test
 	void testMajorRelease() throws IOException, GitAPIException {
-		BuildResult result = runWithArguments("prepareRelease", "--releaseType", "MAJOR", "-s");
+		BuildResult result = runWithArguments("prepareRelease", "--releaseType", "MAJOR");
 		verifyPrepareReleaseResults(result, "1.0.0");
 
 		result = runWithArguments("finalizeRelease");
@@ -87,7 +87,7 @@ class TestReleasePluginFunctionalTest {
 	void testMinorRelease() throws IOException, GitAPIException {
 		BuildResult result = runWithArguments("prepareRelease", "--releaseType", "MINOR");
 		verifyPrepareReleaseResults(result, "0.1.0");
-		
+
 		result = runWithArguments("finalizeRelease");
 		verifyFinalizeReleaseResults("0.1.1-SNAPSHOT");
 	}
@@ -96,26 +96,26 @@ class TestReleasePluginFunctionalTest {
 	void testPatchRelease() throws IOException, GitAPIException {
 		BuildResult result = runWithArguments("prepareRelease", "--releaseType", "PATCH");
 		verifyPrepareReleaseResults(result, "0.0.2");
-		
+
 		result = runWithArguments("finalizeRelease");
 		verifyFinalizeReleaseResults("0.0.3-SNAPSHOT");
 	}
-	
+
 	@Test
 	void tesOverridingReleaseVersion() throws IOException, GitAPIException {
-		BuildResult result = runWithArguments("prepareRelease", "--releaseType", "MANUAL", "--releaseVersion", "1.2.3-r");
+		BuildResult result = runWithArguments("prepareRelease", "--releaseType", "MANUAL", "--releaseVersion",
+				"1.2.3-r");
 		verifyPrepareReleaseResults(result, "1.2.3-r");
-		
+
 		result = runWithArguments("finalizeRelease");
 		verifyFinalizeReleaseResults("1.2.4-SNAPSHOT");
 	}
-	
-	
+
 	@Test
 	void tesOverridingNewVersion() throws IOException, GitAPIException {
 		BuildResult result = runWithArguments("prepareRelease", "--releaseType", "PATCH");
 		verifyPrepareReleaseResults(result, "0.0.2");
-		
+
 		result = runWithArguments("finalizeRelease", "--newVersion", "1.2.3-r");
 		verifyFinalizeReleaseResults("1.2.3-r");
 	}
@@ -131,7 +131,7 @@ class TestReleasePluginFunctionalTest {
 
 		BuildResult result = runWithArguments("prepareRelease", "--releaseType", "MAJOR");
 		verifyPrepareReleaseResults(result, "1.0.0");
-		
+
 		result = runWithArguments("finalizeRelease");
 		verifyFinalizeReleaseResults("1.0.1-SNAPSHOT");
 	}
@@ -149,7 +149,7 @@ class TestReleasePluginFunctionalTest {
 
 		BuildResult result = runWithArguments("prepareRelease", "--releaseType", "MAJOR");
 		verifyPrepareReleaseResults(result, "1.0.0");
-		
+
 		result = runWithArguments("finalizeRelease");
 		verifyFinalizeReleaseResults("1.0.1-SNAPSHOT");
 	}
@@ -162,7 +162,7 @@ class TestReleasePluginFunctionalTest {
 		BuildResult result = runWithArgumentsAndFail("prepareRelease", "--releaseType", "MAJOR");
 		assertTrue(result.getOutput().contains("Unable to release with uncommitted changes"));
 	}
-	
+
 	@Test
 	void testFinalizeReleaseWithUncommitedChanges() throws IOException {
 		Files.write(buildFile, Lists.newArrayList("plugins {", "  id('fincher.release')", "}", "", "release {",
@@ -177,7 +177,7 @@ class TestReleasePluginFunctionalTest {
 		git.checkout().setCreateBranch(true).setName("main").call();
 		BuildResult result = runWithArguments("prepareRelease", "--releaseType", "MINOR");
 		verifyPrepareReleaseResults(result, "0.1.0");
-		
+
 		result = runWithArguments("finalizeRelease");
 		verifyFinalizeReleaseResults("0.1.1-SNAPSHOT");
 	}
@@ -193,7 +193,7 @@ class TestReleasePluginFunctionalTest {
 
 		BuildResult result = runWithArguments("prepareRelease", "--releaseType", "MINOR");
 		verifyPrepareReleaseResults(result, "0.1.0");
-		
+
 		result = runWithArguments("finalizeRelease");
 		verifyFinalizeReleaseResults("0.1.1-SNAPSHOT");
 	}
@@ -216,7 +216,25 @@ class TestReleasePluginFunctionalTest {
 		assertEquals("0.0.1-SNAPSHOT", version);
 	}
 
+	@Test
+	void testTagPrefixOverride() throws IOException, GitAPIException {
+		Files.write(buildFile, Lists.newArrayList("plugins {", "  id('fincher.release')", "}", "", "release {",
+				"    tagPrefix = 'tagPrefix'", "}"));
+		gitAddAndCommit("build.gradle", "update build.gradle to tag prefix");
+
+		BuildResult result = runWithArguments("prepareRelease", "--releaseType", "MAJOR");
+		verifyPrepareReleaseResults(result, "1.0.0", "tagPrefix");
+
+		result = runWithArguments("finalizeRelease");
+		verifyFinalizeReleaseResults("1.0.1-SNAPSHOT");
+	}
+
 	private void verifyPrepareReleaseResults(BuildResult buildResult, String expectedVersion)
+			throws IOException, GitAPIException {
+		verifyPrepareReleaseResults(buildResult, expectedVersion, "");
+	}
+
+	private void verifyPrepareReleaseResults(BuildResult buildResult, String expectedVersion, String tagPrefix)
 			throws IOException, GitAPIException {
 		String version = getVersionFromFile();
 		assertEquals(expectedVersion, version);
@@ -226,11 +244,10 @@ class TestReleasePluginFunctionalTest {
 
 		Ref latestTag = git.tagList().call().iterator().next();
 		assertNotNull(latestTag);
-		assertEquals("refs/tags/" + expectedVersion, latestTag.getName());
+		assertEquals("refs/tags/" + tagPrefix + expectedVersion, latestTag.getName());
 	}
 
-	private void verifyFinalizeReleaseResults(String expectedVersion)
-			throws IOException, GitAPIException {
+	private void verifyFinalizeReleaseResults(String expectedVersion) throws IOException, GitAPIException {
 		String version = getVersionFromFile();
 		assertEquals(expectedVersion, version);
 		assertEquals(String.format("\"Set version after release to %s\"", expectedVersion),

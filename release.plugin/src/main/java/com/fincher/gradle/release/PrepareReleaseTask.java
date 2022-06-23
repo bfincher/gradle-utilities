@@ -3,7 +3,9 @@ package com.fincher.gradle.release;
 import java.io.IOException;
 
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.options.Option;
 
 public abstract class PrepareReleaseTask extends AbstractReleaseTask {
@@ -13,7 +15,6 @@ public abstract class PrepareReleaseTask extends AbstractReleaseTask {
 	}
 
 	private ReleaseType releaseType;
-	private String tagPrefix = "";
 	private String releaseVersionOverride = null;
 
 	@Option(option = "releaseType", description = "The type of release.  One of MAJOR, MINOR, PATCH, MANUAL.  If MANUAL is specified, releaseVersion must also be specified")
@@ -31,15 +32,9 @@ public abstract class PrepareReleaseTask extends AbstractReleaseTask {
 		return releaseType;
 	}
 
-	@Option(option = "tagPrefix", description = "An optional prefix to be prepended to the created tag")
-	public void setTagPrefix(String tagPrefix) {
-		this.tagPrefix = tagPrefix;
-	}
-
 	@Input
-	public String getTagPrefix() {
-		return tagPrefix;
-	}
+	@Optional
+	public abstract Property<String> getTagPrefix();
 
 	@Override
 	public void releaseTaskAction() throws IOException, GitAPIException {
@@ -86,7 +81,7 @@ public abstract class PrepareReleaseTask extends AbstractReleaseTask {
 			String newVersion = version.toString();
 			git.commit().setMessage(String.format("\"Set version for release to %s\"", newVersion)).call();
 
-			String tag = getTagPrefix() + newVersion;
+			String tag = getTagPrefix().getOrElse("") + newVersion;
 			git.tag().setMessage(tag).setName(tag).setAnnotated(true).call();
 		} catch (GitAPIException e) {
 			throw new RuntimeException(e);
