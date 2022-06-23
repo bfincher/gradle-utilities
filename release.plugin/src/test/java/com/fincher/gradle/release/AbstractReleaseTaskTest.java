@@ -3,8 +3,14 @@
  */
 package com.fincher.gradle.release;
 
-import org.gradle.internal.impldep.org.eclipse.jgit.api.Git;
-import org.gradle.internal.impldep.org.eclipse.jgit.lib.Repository;
+import java.io.IOException;
+
+import javax.inject.Inject;
+
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.lib.Repository;
+import org.gradle.api.Project;
+import org.gradle.testfixtures.ProjectBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -26,22 +32,31 @@ public class AbstractReleaseTaskTest {
 	@Test
 	public void pluginRegistersATask() {
 		// Create a test project and apply the plugin
-//		Project project = ProjectBuilder.builder().build();
-//		project.getTasks().register("abstractReleaseTask", TestClass.class);
-//		project.getTasks().findByName("abstractReleaseTask");
-//		project.getPlugins().apply("testPlugin.greeting");
+		Project project = ProjectBuilder.builder().build();
+
+		project.getTasks().register("abstractReleaseTask", TestClass.class);
+		project.getTasks().findByName("abstractReleaseTask");
+		project.getPlugins().apply("release.prepareRelease");
 //
 //		// Verify the result
 //		assertNotNull(project.getTasks().findByName("greeting"));
 	}
 	
-//	class TestClass extends AbstractReleaseTask {
-//		protected Repository initGitRepo() throws IOException {
-//			return repo;
-//		}
-//		
-//		protected Git initGit(Repository repo) {
-//			return git;
-//		}
-//	}
+	abstract static class TestClass extends AbstractReleaseTask {
+		
+		@Inject
+		public TestClass() {
+			
+		}
+		
+		@Override
+		protected Repository initGitRepo() throws IOException {
+			return repo;
+		}
+		
+		@Override
+		protected Git initGit(Repository repo) {
+			return git;
+		}
+	}
 }
