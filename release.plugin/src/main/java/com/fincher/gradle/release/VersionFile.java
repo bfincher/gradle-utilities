@@ -102,6 +102,10 @@ class VersionFile {
 		return suffix;
 	}
 
+	Path getFile() {
+		return file;
+	}
+
 	void save() throws IOException {
 		Files.write(file, fileContent);
 	}

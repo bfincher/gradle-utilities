@@ -4,6 +4,7 @@
 package com.fincher.gradle.release;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,19 +14,23 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 
+import org.eclipse.jgit.api.AddCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.Ref;
 import org.gradle.testkit.runner.GradleRunner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 /**
  * A simple functional test for the 'testPlugin.greeting' plugin.
  */
-class TestPluginPluginFunctionalTest {
+class TestReleasePluginFunctionalTest {
 
 	private Path projectDir;
 
@@ -38,7 +43,7 @@ class TestPluginPluginFunctionalTest {
 	private Path gradlePropertiesFile;
 
 	private Path versionFile;
-	
+
 	private Path gitRepoBareDir;
 
 	private GradleRunner runner;
@@ -47,15 +52,18 @@ class TestPluginPluginFunctionalTest {
 
 	private String versionKeyValue;
 
+	private Git git;
+
 	@BeforeEach
 	public void beforeEach() throws Exception {
-		projectDir = createProjectDir();
+		projectDir = recursivelyDeleteDir(Paths.get("build", "testProjectDir"));
+		gitRepoBareDir = createEmptyDir(Paths.get("build", "testGitBare"));
 		gitRepoDir = projectDir;
 		buildFile = projectDir.resolve("build.gradle");
 		settingsFile = projectDir.resolve("settings.gradle");
 		gradlePropertiesFile = projectDir.resolve("gradle.properties");
 		versionFile = gradlePropertiesFile;
-		initGit();
+		git = initGit();
 
 		runnerArguments = new ArrayList<>();
 		runnerArguments.add("-s");
@@ -70,10 +78,12 @@ class TestPluginPluginFunctionalTest {
 		Files.writeString(settingsFile, "");
 		Files.writeString(buildFile, "plugins {" + "  id('fincher.release')" + "}");
 		Files.writeString(gradlePropertiesFile, versionKeyValue + " = 0.0.1-SNAPSHOT");
+
+		gitAddInitialFiles(git);
 	}
 
 	@Test
-	void testMajorRelease() throws IOException {
+	void testMajorRelease() throws IOException, GitAPIException {
 		runnerArguments.add("prepareRelease");
 		runnerArguments.add("--releaseType");
 		runnerArguments.add("MAJOR");
@@ -84,7 +94,7 @@ class TestPluginPluginFunctionalTest {
 	}
 
 	@Test
-	void testMinorRelease() throws IOException {
+	void testMinorRelease() throws IOException, GitAPIException {
 		runnerArguments.add("prepareRelease");
 		runnerArguments.add("--releaseType");
 		runnerArguments.add("MINOR");
@@ -95,7 +105,7 @@ class TestPluginPluginFunctionalTest {
 	}
 
 	@Test
-	void testPatchRelease() throws IOException {
+	void testPatchRelease() throws IOException, GitAPIException {
 		runnerArguments.add("prepareRelease");
 		runnerArguments.add("--releaseType");
 		runnerArguments.add("PATCH");
@@ -106,57 +116,80 @@ class TestPluginPluginFunctionalTest {
 	}
 
 	@Test
-	void testVersionFileOverride() throws IOException{
-		
+	void testVersionFileOverride() throws IOException, GitAPIException {
+
 		versionFile = buildFile;
-		
-		Files.write(buildFile, Lists.newArrayList("plugins {",
-				"  id('fincher.release')",
-				"}",
-				"",
-				"release {",
-				"    versionFile = file('build.gradle')",
-				"}",
-				"",
-				"version='0.0.1'"));
-		
-		
+
+		Files.write(buildFile, Lists.newArrayList("plugins {", "  id('fincher.release')", "}", "", "release {",
+				"    versionFile = file('build.gradle')", "}", "", "version='0.0.1'"));
+
+		gitAddAndCommit(versionFile.getFileName().toString(), "update build.gradle to have version");
+
 		runnerArguments.add("prepareRelease");
 		runnerArguments.add("--releaseType");
 		runnerArguments.add("MAJOR");
 
 		runner.withArguments(runnerArguments).build();
-		
+
 		String originalVersion = getVersionFromFile();
 
 		verifyPrepareReleaseResults("1.0.0");
 	}
 
-	private void verifyPrepareReleaseResults(String expectedVersion) throws IOException {
+	private void verifyPrepareReleaseResults(String expectedVersion) throws IOException, GitAPIException {
 		String version = getVersionFromFile();
 		assertEquals(expectedVersion, version);
+		assertEquals(String.format("\"Set version for release to %s\"", expectedVersion),
+				git.log().call().iterator().next().getFullMessage());
+		AbstractReleaseTask.verifyNoUncommitedChanges(git);
 
+		Ref latestTag = git.tagList().call().iterator().next();
+		assertNotNull(latestTag);
+		assertEquals("refs/tags/" + expectedVersion, latestTag.getName());
 	}
 
 	private String getVersionFromFile() throws IOException {
 		return VersionFile.load(versionFile, versionKeyValue).toString();
 	}
 
-	private void initGit() throws IOException, GitAPIException {
-		Git git = Git.init().setDirectory(gitRepoDir.toFile()).call();
-		git.add().addFilepattern("build.gradle").addFilepattern("settings.gradle").call();
+	private Git initGit() throws IOException, GitAPIException {
+		Git.init().setDirectory(gitRepoBareDir.toFile()).setBare(true).call();
+
+		Git git = Git.cloneRepository().setURI(gitRepoBareDir.toUri().toString()).setDirectory(gitRepoDir.toFile())
+				.call();
+
+		return git;
+	}
+
+	private void gitAddInitialFiles(Git git) throws IOException, GitAPIException {
+
+		Set<String> filesToAdd = Sets.newHashSet("build.gradle", "settings.gradle");
+		filesToAdd.add(versionFile.getFileName().toString());
+
+		AddCommand addCommand = git.add();
+		filesToAdd.forEach(addCommand::addFilepattern);
+		addCommand.call();
+
 		git.commit().setMessage("initial commit").call();
 	}
 
-	private static Path createProjectDir() throws IOException {
-		Path projectDir = Paths.get("build", "projectDir");
-		if (Files.exists(projectDir)) {
-			Files.walk(projectDir).sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
+	private void gitAddAndCommit(String file, String message) throws GitAPIException {
+		git.add().addFilepattern(file).call();
+		git.commit().setMessage(message).call();
+	}
+
+	private static Path recursivelyDeleteDir(Path dir) throws IOException {
+		if (Files.exists(dir)) {
+			Files.walk(dir).sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
 		}
+		return dir;
+	}
 
-		Files.createDirectories(projectDir);
-
-		return projectDir;
+	/** Create the given directory. If it previously exists, delete and re-create */
+	private static Path createEmptyDir(Path dir) throws IOException {
+		recursivelyDeleteDir(dir);
+		Files.createDirectories(dir);
+		return dir;
 	}
 
 }

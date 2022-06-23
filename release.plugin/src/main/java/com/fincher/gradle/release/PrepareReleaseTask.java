@@ -40,33 +40,35 @@ public abstract class PrepareReleaseTask extends AbstractReleaseTask {
 		try {						
 			switch (getReleaseType()) {
 			case MAJOR:
-				String major = String.valueOf(Integer.parseInt(versionFile.getMajor()) + 1);
-				versionFile.replaceMajor(major);
-				versionFile.replaceMinor("0");
-				versionFile.replacePatch("0");				
+				String major = String.valueOf(Integer.parseInt(version.getMajor()) + 1);
+				version.replaceMajor(major);
+				version.replaceMinor("0");
+				version.replacePatch("0");				
 				break;
 
 			case MINOR:
-				String minor = String.valueOf(Integer.parseInt(versionFile.getMinor()) + 1);
-				versionFile.replaceMinor(minor);
-				versionFile.replacePatch("0");
+				String minor = String.valueOf(Integer.parseInt(version.getMinor()) + 1);
+				version.replaceMinor(minor);
+				version.replacePatch("0");
 				break;
 
 			case PATCH:
-				String patch = String.valueOf(Integer.parseInt(versionFile.getPatch()) + 1);
-				versionFile.replacePatch(patch);
+				String patch = String.valueOf(Integer.parseInt(version.getPatch()) + 1);
+				version.replacePatch(patch);
 				break;
 
 			default:
 				throw new IllegalStateException();
 			}
 			
-			versionFile.replaceSuffix("");
-			versionFile.save();
+			version.replaceSuffix("");
+			version.save();
 
+			System.out.println("version file = " + versionFile.toString());
 			git.add().addFilepattern(versionFile.toString()).call();
-			String newVersion = versionFile.toString();
-			git.commit().setMessage(String.format("\"Set version for release to %s\"", newVersion));
+			
+			String newVersion = version.toString();
+			git.commit().setMessage(String.format("\"Set version for release to %s\"", newVersion)).call();
 			
 			String tag = getTagPrefix() + newVersion;
 			git.tag().setMessage(tag).setName(tag).setAnnotated(true).call();
