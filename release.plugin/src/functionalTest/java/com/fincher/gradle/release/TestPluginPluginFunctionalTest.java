@@ -13,11 +13,9 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.regex.Matcher;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.GradleRunner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +38,8 @@ class TestPluginPluginFunctionalTest {
 	private Path gradlePropertiesFile;
 
 	private Path versionFile;
+	
+	private Path gitRepoBareDir;
 
 	private GradleRunner runner;
 
@@ -139,8 +139,7 @@ class TestPluginPluginFunctionalTest {
 	}
 
 	private String getVersionFromFile() throws IOException {
-		Matcher m = AbstractReleaseTask.getVersion(versionFile, versionKeyValue);
-		return m.group("version");
+		return VersionFile.load(versionFile, versionKeyValue).toString();
 	}
 
 	private void initGit() throws IOException, GitAPIException {

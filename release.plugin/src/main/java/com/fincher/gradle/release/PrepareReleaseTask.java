@@ -1,7 +1,6 @@
 package com.fincher.gradle.release;
 
 import java.io.IOException;
-import java.util.regex.Matcher;
 
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.gradle.api.tasks.Input;
@@ -38,36 +37,35 @@ public abstract class PrepareReleaseTask extends AbstractReleaseTask {
 	public void releaseTaskAction() throws IOException, GitAPIException {
 		super.releaseTaskAction();
 
-		try {
-			Matcher matcher = getVersion();
-			String major = matcher.group("major");
-			String minor = matcher.group("minor");
-			String patch = matcher.group("patch");						
-
+		try {						
 			switch (getReleaseType()) {
 			case MAJOR:
-				major = String.valueOf(Integer.parseInt(major) + 1);
-				minor = "0";
-				patch = "0";
+				String major = String.valueOf(Integer.parseInt(versionFile.getMajor()) + 1);
+				versionFile.replaceMajor(major);
+				versionFile.replaceMinor("0");
+				versionFile.replacePatch("0");				
 				break;
 
 			case MINOR:
-				minor = String.valueOf(Integer.parseInt(minor) + 1);
-				patch = "0";
+				String minor = String.valueOf(Integer.parseInt(versionFile.getMinor()) + 1);
+				versionFile.replaceMinor(minor);
+				versionFile.replacePatch("0");
 				break;
 
 			case PATCH:
-				patch = String.valueOf(Integer.parseInt(patch) + 1);
+				String patch = String.valueOf(Integer.parseInt(versionFile.getPatch()) + 1);
+				versionFile.replacePatch(patch);
 				break;
 
 			default:
 				throw new IllegalStateException();
 			}
-
-			replaceVersion(major, minor, patch, "");
+			
+			versionFile.replaceSuffix("");
+			versionFile.save();
 
 			git.add().addFilepattern(versionFile.toString()).call();
-			String newVersion = String.format("%s.%s.%s", major, minor, patch);
+			String newVersion = versionFile.toString();
 			git.commit().setMessage(String.format("\"Set version for release to %s\"", newVersion));
 			
 			String tag = getTagPrefix() + newVersion;
