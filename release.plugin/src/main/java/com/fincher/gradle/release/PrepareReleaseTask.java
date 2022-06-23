@@ -7,7 +7,7 @@ import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.options.Option;
 
 public abstract class PrepareReleaseTask extends AbstractReleaseTask {
-	
+
 	private static enum ReleaseType {
 		MAJOR, MINOR, PATCH;
 	}
@@ -39,13 +39,13 @@ public abstract class PrepareReleaseTask extends AbstractReleaseTask {
 	public void releaseTaskAction() throws IOException, GitAPIException {
 		super.releaseTaskAction();
 
-		try {						
+		try {
 			switch (getReleaseType()) {
 			case MAJOR:
 				String major = String.valueOf(Integer.parseInt(version.getMajor()) + 1);
 				version.replaceMajor(major);
 				version.replaceMinor("0");
-				version.replacePatch("0");				
+				version.replacePatch("0");
 				break;
 
 			case MINOR:
@@ -62,18 +62,18 @@ public abstract class PrepareReleaseTask extends AbstractReleaseTask {
 			default:
 				throw new IllegalStateException();
 			}
-			
+
 			version.replaceSuffix("");
 			version.save();
-			
+
 			git.add().addFilepattern(relativeVersionFile).call();
-			
+
 			String newVersion = version.toString();
 			git.commit().setMessage(String.format("\"Set version for release to %s\"", newVersion)).call();
-			
+
 			String tag = getTagPrefix() + newVersion;
 			git.tag().setMessage(tag).setName(tag).setAnnotated(true).call();
-		} catch (GitAPIException  e) {
+		} catch (GitAPIException e) {
 			throw new RuntimeException(e);
 		}
 

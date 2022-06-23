@@ -15,12 +15,12 @@ class VersionFile {
 
 	private static final String VERSION_PREFIX_GROUP = "versionPrefix";
 	private static final String VERSION_GROUP = "version";
-	private static final String MAJOR_GROUP = "major";
-	private static final String MINOR_GROUP = "minor";
-	private static final String PATCH_GROUP = "patch";
-	private static final String SUFFIX_GROUP = "suffix";
+	static final String MAJOR_GROUP = "major";
+	static final String MINOR_GROUP = "minor";
+	static final String PATCH_GROUP = "patch";
+	static final String SUFFIX_GROUP = "suffix";
 
-	private static final String versionPatternStr = String.format(
+	static final String versionPatternStr = String.format(
 			"(?<%s>[\'\"]?(?<%s>\\d+)\\.(?<%s>\\d+)\\.(?<%s>\\d+)(?<%s>[a-zA-Z0-9_-]*)[\'\"]?)", VERSION_GROUP,
 			MAJOR_GROUP, MINOR_GROUP, PATCH_GROUP, SUFFIX_GROUP);
 
@@ -45,8 +45,8 @@ class VersionFile {
 		this.suffix = suffix;
 	}
 
-	// TODO change version key value to a property
-	static VersionFile load(Project project, Property<File> fileProperty, Property<String> versionKeyValue) throws IOException {
+	static VersionFile load(Project project, Property<File> fileProperty, Property<String> versionKeyValue)
+			throws IOException {
 		Path file = fileProperty.getOrElse(new File(project.getProjectDir(), "gradle.properties")).toPath();
 		return load(file, versionKeyValue.getOrElse("version"));
 	}
@@ -107,6 +107,9 @@ class VersionFile {
 	}
 
 	void save() throws IOException {
+		if (file == null) {
+			throw new IllegalStateException("Cannot save when not loaded from a file");
+		}
 		Files.write(file, fileContent);
 	}
 
