@@ -6,9 +6,11 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.options.Option;
 
-import com.fincher.gradle.release.ReleaseExtension.ReleaseType;
-
 public abstract class PrepareReleaseTask extends AbstractReleaseTask {
+	
+	private static enum ReleaseType {
+		MAJOR, MINOR, PATCH;
+	}
 
 	private ReleaseType releaseType;
 	private String tagPrefix = "";

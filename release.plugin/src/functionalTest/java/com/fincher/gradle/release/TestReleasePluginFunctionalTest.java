@@ -12,9 +12,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.List;
 import java.util.Set;
 
 import org.eclipse.jgit.api.AddCommand;
@@ -27,6 +25,8 @@ import org.gradle.testkit.runner.GradleRunner;
 import org.gradle.testkit.runner.TaskOutcome;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -50,11 +50,9 @@ class TestReleasePluginFunctionalTest {
 
 	private Path gitRepoBareDir;
 
-	private GradleRunner runner;
-
-	private List<String> runnerArguments;
-
 	private String versionKeyValue;
+
+	private GradleRunner runner;
 
 	private Git git;
 
@@ -68,16 +66,8 @@ class TestReleasePluginFunctionalTest {
 		gradlePropertiesFile = projectDir.resolve("gradle.properties");
 		versionFile = gradlePropertiesFile;
 		git = initGit();
-
-		runnerArguments = new ArrayList<>();
-//		runnerArguments.add("-s");
-
-		runner = GradleRunner.create();
-		runner.forwardOutput();
-		runner.withPluginClasspath();
-		runner.withProjectDir(projectDir.toFile());
-
 		versionKeyValue = "version";
+		runner = initRunner();
 
 		Files.writeString(settingsFile, "");
 		Files.writeString(buildFile, "plugins {" + "  id('fincher.release')" + "}");
@@ -88,34 +78,19 @@ class TestReleasePluginFunctionalTest {
 
 	@Test
 	void testMajorRelease() throws IOException, GitAPIException {
-		runnerArguments.add("prepareRelease");
-		runnerArguments.add("--releaseType");
-		runnerArguments.add("MAJOR");
-
-		BuildResult result = runner.withArguments(runnerArguments).build();
-
+		BuildResult result = runWithArguments("prepareRelease", "--releaseType", "MAJOR");
 		verifyPrepareReleaseResults(result, "1.0.0");
 	}
 
 	@Test
 	void testMinorRelease() throws IOException, GitAPIException {
-		runnerArguments.add("prepareRelease");
-		runnerArguments.add("--releaseType");
-		runnerArguments.add("MINOR");
-
-		BuildResult result = runner.withArguments(runnerArguments).build();
-
+		BuildResult result = runWithArguments("prepareRelease", "--releaseType", "MINOR");
 		verifyPrepareReleaseResults(result, "0.1.0");
 	}
 
 	@Test
 	void testPatchRelease() throws IOException, GitAPIException {
-		runnerArguments.add("prepareRelease");
-		runnerArguments.add("--releaseType");
-		runnerArguments.add("PATCH");
-
-		BuildResult result = runner.withArguments(runnerArguments).build();
-
+		BuildResult result = runWithArguments("prepareRelease", "--releaseType", "PATCH");
 		verifyPrepareReleaseResults(result, "0.0.2");
 	}
 
@@ -128,49 +103,67 @@ class TestReleasePluginFunctionalTest {
 
 		gitAddAndCommit(versionFile.getFileName().toString(), "update build.gradle to have version");
 
-		runnerArguments.add("prepareRelease");
-		runnerArguments.add("--releaseType");
-		runnerArguments.add("MAJOR");
-
-		BuildResult result = runner.withArguments(runnerArguments).build();
-
+		BuildResult result = runWithArguments("prepareRelease", "--releaseType", "MAJOR");
 		verifyPrepareReleaseResults(result, "1.0.0");
 	}
-	
+
 	@Test
 	void testVersionKeyValueOverride() throws IOException, GitAPIException {
 		versionKeyValue = "otherVersionKey";
-		
+
 		Files.writeString(gradlePropertiesFile, versionKeyValue + " = 0.0.1");
 		gitAddAndCommit("gradle.properties", "use different version key");
-		
+
 		Files.write(buildFile, Lists.newArrayList("plugins {", "  id('fincher.release')", "}", "", "release {",
 				"    versionKeyValue = 'otherVersionKey'", "}"));
 		gitAddAndCommit("build.gradle", "update build.gradle to have version");
-		
-		runnerArguments.add("prepareRelease");
-		runnerArguments.add("--releaseType");
-		runnerArguments.add("MAJOR");
-		
-		BuildResult result = runner.withArguments(runnerArguments).build();
-		
+
+		BuildResult result = runWithArguments("prepareRelease", "--releaseType", "MAJOR");
 		verifyPrepareReleaseResults(result, "1.0.0");
 	}
-	
+
 	@Test
 	void testPrepareReleaseWithUncommitedChanges() throws IOException {
 		Files.write(buildFile, Lists.newArrayList("plugins {", "  id('fincher.release')", "}", "", "release {",
 				"    versionFile = file('build.gradle')", "}", "", "version='0.0.1'"));
-		
-		runnerArguments.add("prepareRelease");
-		runnerArguments.add("--releaseType");
-		runnerArguments.add("MAJOR");
 
-		BuildResult result = runner.withArguments(runnerArguments).buildAndFail();
+		BuildResult result = runWithArgumentsAndFail("prepareRelease", "--releaseType", "MAJOR");
 		assertTrue(result.getOutput().contains("Unable to release with uncommitted changes"));
 	}
 
-	private void verifyPrepareReleaseResults(BuildResult buildResult, String expectedVersion) throws IOException, GitAPIException {
+	@Test
+	void testMainBranch() throws IOException, GitAPIException {
+		git.checkout().setCreateBranch(true).setName("main").call();
+		BuildResult result = runWithArguments("prepareRelease", "--releaseType", "MINOR");
+		verifyPrepareReleaseResults(result, "0.1.0");
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "other1", "other2" })
+	void testBranchOverride(String branchName) throws IOException, GitAPIException {
+		git.checkout().setCreateBranch(true).setName(branchName).call();
+
+		Files.write(buildFile, Lists.newArrayList("plugins {", "  id('fincher.release')", "}", "", "release {",
+				"    requiredBranchRegex = '^(other1)|(other2)$'", "}"));
+		gitAddAndCommit("build.gradle", "update build.gradle to have version");
+
+		BuildResult result = runWithArguments("prepareRelease", "--releaseType", "MINOR");
+		verifyPrepareReleaseResults(result, "0.1.0");
+	}
+
+	@Test
+	public void testInvalidBranch() throws IOException, GitAPIException {
+		git.checkout().setCreateBranch(true).setName("other1").call();
+		BuildResult result = runWithArgumentsAndFail("prepareRelease", "--releaseType", "MINOR");
+		String version = getVersionFromFile();
+		assertEquals("0.0.1-SNAPSHOT", version);
+
+		assertTrue(
+				result.getOutput().contains("Expected branch name to match pattern ^(master)|(main)$ but was other1"));
+	}
+
+	private void verifyPrepareReleaseResults(BuildResult buildResult, String expectedVersion)
+			throws IOException, GitAPIException {
 		String version = getVersionFromFile();
 		assertEquals(expectedVersion, version);
 		assertEquals(String.format("\"Set version for release to %s\"", expectedVersion),
@@ -180,11 +173,11 @@ class TestReleasePluginFunctionalTest {
 		Ref latestTag = git.tagList().call().iterator().next();
 		assertNotNull(latestTag);
 		assertEquals("refs/tags/" + expectedVersion, latestTag.getName());
-		
-		buildResult.getTasks().forEach(t -> System.out.println("task = " +  t.toString()));
+
+		buildResult.getTasks().forEach(t -> System.out.println("task = " + t.toString()));
 		BuildTask task = buildResult.task(":prepareRelease");
-		assertEquals(TaskOutcome.SUCCESS, task.getOutcome()); 
-		
+		assertEquals(TaskOutcome.SUCCESS, task.getOutcome());
+
 	}
 
 	private String getVersionFromFile() throws IOException {
@@ -222,6 +215,30 @@ class TestReleasePluginFunctionalTest {
 			Files.walk(dir).sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
 		}
 		return dir;
+	}
+
+	private BuildResult runWithArguments(String... arguments) {
+		if (arguments.length > 0) {
+			runner.withArguments(arguments);
+		}
+
+		return runner.build();
+	}
+
+	private BuildResult runWithArgumentsAndFail(String... arguments) {
+		if (arguments.length > 0) {
+			runner.withArguments(arguments);
+		}
+
+		return runner.buildAndFail();
+	}
+
+	private GradleRunner initRunner() {
+		GradleRunner runner = GradleRunner.create();
+		runner.forwardOutput();
+		runner.withPluginClasspath();
+		runner.withProjectDir(projectDir.toFile());
+		return runner;
 	}
 
 	/** Create the given directory. If it previously exists, delete and re-create */

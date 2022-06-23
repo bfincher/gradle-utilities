@@ -1,6 +1,5 @@
 package com.fincher.gradle.release;
 
-import java.io.File;
 import java.util.function.Supplier;
 
 import org.gradle.api.Plugin;
@@ -23,7 +22,8 @@ public class ReleasePlugin implements Plugin<Project> {
 		
 		project.getTasks().register("prepareRelease", PrepareReleaseTask.class, task -> {
 			setTaskPropertyFromExtension(extension.getVersionFile(), task::getVersionFile);
-			setTaskPropertyFromExtension(extension.getVersionKeyValue(), task::getVersionKeyValue);		
+			setTaskPropertyFromExtension(extension.getVersionKeyValue(), task::getVersionKeyValue);
+			setTaskPropertyFromExtension(extension.getRequiredBranchRegex(), task::getRequiredBranchRegex);
 		});
 		
         /*

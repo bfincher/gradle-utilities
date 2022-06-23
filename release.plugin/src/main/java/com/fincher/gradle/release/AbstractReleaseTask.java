@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.Status;
@@ -16,7 +17,6 @@ import org.gradle.api.GradleException;
 import org.gradle.api.Project;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.InputDirectory;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.TaskAction;
@@ -28,10 +28,6 @@ public abstract class AbstractReleaseTask extends DefaultTask {
 	protected VersionFile version;
 	protected String relativeVersionFile;
 
-//	@InputDirectory
-//	@Optional
-//	public abstract Property<File> getBaseRepoDir();
-
 	@InputFile
 	@Optional
 	public abstract Property<File> getVersionFile();
@@ -39,6 +35,10 @@ public abstract class AbstractReleaseTask extends DefaultTask {
 	@Input
 	@Optional
 	public abstract Property<String> getVersionKeyValue();
+
+	@Input
+	@Optional
+	public abstract Property<String> getRequiredBranchRegex();
 
 	@TaskAction
 	public void releaseTaskAction() throws GitAPIException, IOException {
@@ -56,6 +56,12 @@ public abstract class AbstractReleaseTask extends DefaultTask {
 		verifyNoUncommitedChanges();
 
 		String branch = repo.getBranch();
+		String branchPattern = getRequiredBranchRegex().getOrElse("^(master)|(main)$");
+		if (!Pattern.compile(branchPattern).matcher(branch).matches()) {
+			String errorMsg = String.format("Expected branch name to match pattern %s but was %s", branchPattern,
+					branch);
+			throw new IllegalStateException(errorMsg);
+		}
 	}
 
 	protected static String replaceGroup(String source, Matcher matcher, String group, String replacement) {
@@ -73,7 +79,7 @@ public abstract class AbstractReleaseTask extends DefaultTask {
 				break;
 			}
 		}
-		
+
 		if (gitDir == null) {
 			System.err.println("Unable to find .git directory");
 			throw new GradleException("Unable to find .git directory");
