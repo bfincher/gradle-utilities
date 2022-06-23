@@ -6,7 +6,7 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.options.Option;
 
-import com.fincher.gradle.release.ReleaseExtention.ReleaseType;
+import com.fincher.gradle.release.ReleaseExtension.ReleaseType;
 
 public abstract class PrepareReleaseTask extends AbstractReleaseTask {
 
@@ -63,9 +63,8 @@ public abstract class PrepareReleaseTask extends AbstractReleaseTask {
 			
 			version.replaceSuffix("");
 			version.save();
-
-			System.out.println("version file = " + versionFile.toString());
-			git.add().addFilepattern(versionFile.toString()).call();
+			
+			git.add().addFilepattern(relativeVersionFile).call();
 			
 			String newVersion = version.toString();
 			git.commit().setMessage(String.format("\"Set version for release to %s\"", newVersion)).call();

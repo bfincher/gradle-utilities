@@ -1,26 +1,29 @@
 package com.fincher.gradle.release;
 
 import java.io.File;
+import java.util.function.Supplier;
 
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
-import org.gradle.api.file.RegularFileProperty;
-
-import com.fincher.gradle.release.ReleaseExtention.ReleaseType;
+import org.gradle.api.provider.Property;
 
 public class ReleasePlugin implements Plugin<Project> {
 	
 	
+	private <T> void setTaskPropertyFromExtension(Property<T> source, Supplier<Property<T>> dest) {
+		if (source.isPresent()) {
+			dest.get().set(source.get());
+		}
+	}
 	
 	public void apply(Project project) {
 		
-		ReleaseExtention extension = project.getExtensions().create("release", ReleaseExtention.class);
-		
-		extension.getVersionFile().convention(new File(project.getProjectDir(), "gradle.properties"));
+		ReleaseExtension extension = project.getExtensions().create("release", ReleaseExtension.class);
 		extension.getVersionKeyValue().convention("version");
 		
 		project.getTasks().register("prepareRelease", PrepareReleaseTask.class, task -> {
-			task.getVersionFile().set(extension.getVersionFile().get().toPath());
+			setTaskPropertyFromExtension(extension.getVersionFile(), task::getVersionFile);
+			setTaskPropertyFromExtension(extension.getVersionKeyValue(), task::getVersionKeyValue);		
 		});
 		
         /*

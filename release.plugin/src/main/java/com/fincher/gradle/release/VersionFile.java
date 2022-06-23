@@ -46,9 +46,9 @@ class VersionFile {
 	}
 
 	// TODO change version key value to a property
-	static VersionFile load(Project project, Property<Path> fileProperty, String versionKeyValue) throws IOException {
-		Path file = fileProperty.getOrElse(new File(project.getProjectDir(), "gradle.properties").toPath());
-		return load(file, versionKeyValue);
+	static VersionFile load(Project project, Property<File> fileProperty, Property<String> versionKeyValue) throws IOException {
+		Path file = fileProperty.getOrElse(new File(project.getProjectDir(), "gradle.properties")).toPath();
+		return load(file, versionKeyValue.getOrElse("version"));
 	}
 
 	static VersionFile load(Path file, String versionKeyValue) throws IOException {

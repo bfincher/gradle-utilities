@@ -5,6 +5,7 @@ package com.fincher.gradle.release;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,7 +21,10 @@ import org.eclipse.jgit.api.AddCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Ref;
+import org.gradle.testkit.runner.BuildResult;
+import org.gradle.testkit.runner.BuildTask;
 import org.gradle.testkit.runner.GradleRunner;
+import org.gradle.testkit.runner.TaskOutcome;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -66,7 +70,7 @@ class TestReleasePluginFunctionalTest {
 		git = initGit();
 
 		runnerArguments = new ArrayList<>();
-		runnerArguments.add("-s");
+//		runnerArguments.add("-s");
 
 		runner = GradleRunner.create();
 		runner.forwardOutput();
@@ -88,9 +92,9 @@ class TestReleasePluginFunctionalTest {
 		runnerArguments.add("--releaseType");
 		runnerArguments.add("MAJOR");
 
-		runner.withArguments(runnerArguments).build();
+		BuildResult result = runner.withArguments(runnerArguments).build();
 
-		verifyPrepareReleaseResults("1.0.0");
+		verifyPrepareReleaseResults(result, "1.0.0");
 	}
 
 	@Test
@@ -99,9 +103,9 @@ class TestReleasePluginFunctionalTest {
 		runnerArguments.add("--releaseType");
 		runnerArguments.add("MINOR");
 
-		runner.withArguments(runnerArguments).build();
+		BuildResult result = runner.withArguments(runnerArguments).build();
 
-		verifyPrepareReleaseResults("0.1.0");
+		verifyPrepareReleaseResults(result, "0.1.0");
 	}
 
 	@Test
@@ -110,14 +114,13 @@ class TestReleasePluginFunctionalTest {
 		runnerArguments.add("--releaseType");
 		runnerArguments.add("PATCH");
 
-		runner.withArguments(runnerArguments).build();
+		BuildResult result = runner.withArguments(runnerArguments).build();
 
-		verifyPrepareReleaseResults("0.0.2");
+		verifyPrepareReleaseResults(result, "0.0.2");
 	}
 
 	@Test
 	void testVersionFileOverride() throws IOException, GitAPIException {
-
 		versionFile = buildFile;
 
 		Files.write(buildFile, Lists.newArrayList("plugins {", "  id('fincher.release')", "}", "", "release {",
@@ -129,14 +132,45 @@ class TestReleasePluginFunctionalTest {
 		runnerArguments.add("--releaseType");
 		runnerArguments.add("MAJOR");
 
-		runner.withArguments(runnerArguments).build();
+		BuildResult result = runner.withArguments(runnerArguments).build();
 
-		String originalVersion = getVersionFromFile();
+		verifyPrepareReleaseResults(result, "1.0.0");
+	}
+	
+	@Test
+	void testVersionKeyValueOverride() throws IOException, GitAPIException {
+		versionKeyValue = "otherVersionKey";
+		
+		Files.writeString(gradlePropertiesFile, versionKeyValue + " = 0.0.1");
+		gitAddAndCommit("gradle.properties", "use different version key");
+		
+		Files.write(buildFile, Lists.newArrayList("plugins {", "  id('fincher.release')", "}", "", "release {",
+				"    versionKeyValue = 'otherVersionKey'", "}"));
+		gitAddAndCommit("build.gradle", "update build.gradle to have version");
+		
+		runnerArguments.add("prepareRelease");
+		runnerArguments.add("--releaseType");
+		runnerArguments.add("MAJOR");
+		
+		BuildResult result = runner.withArguments(runnerArguments).build();
+		
+		verifyPrepareReleaseResults(result, "1.0.0");
+	}
+	
+	@Test
+	void testPrepareReleaseWithUncommitedChanges() throws IOException {
+		Files.write(buildFile, Lists.newArrayList("plugins {", "  id('fincher.release')", "}", "", "release {",
+				"    versionFile = file('build.gradle')", "}", "", "version='0.0.1'"));
+		
+		runnerArguments.add("prepareRelease");
+		runnerArguments.add("--releaseType");
+		runnerArguments.add("MAJOR");
 
-		verifyPrepareReleaseResults("1.0.0");
+		BuildResult result = runner.withArguments(runnerArguments).buildAndFail();
+		assertTrue(result.getOutput().contains("Unable to release with uncommitted changes"));
 	}
 
-	private void verifyPrepareReleaseResults(String expectedVersion) throws IOException, GitAPIException {
+	private void verifyPrepareReleaseResults(BuildResult buildResult, String expectedVersion) throws IOException, GitAPIException {
 		String version = getVersionFromFile();
 		assertEquals(expectedVersion, version);
 		assertEquals(String.format("\"Set version for release to %s\"", expectedVersion),
@@ -146,6 +180,11 @@ class TestReleasePluginFunctionalTest {
 		Ref latestTag = git.tagList().call().iterator().next();
 		assertNotNull(latestTag);
 		assertEquals("refs/tags/" + expectedVersion, latestTag.getName());
+		
+		buildResult.getTasks().forEach(t -> System.out.println("task = " +  t.toString()));
+		BuildTask task = buildResult.task(":prepareRelease");
+		assertEquals(TaskOutcome.SUCCESS, task.getOutcome()); 
+		
 	}
 
 	private String getVersionFromFile() throws IOException {
