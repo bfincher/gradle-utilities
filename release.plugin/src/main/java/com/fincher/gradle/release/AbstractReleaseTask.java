@@ -95,6 +95,20 @@ public abstract class AbstractReleaseTask extends DefaultTask {
 	protected void verifyNoUncommitedChanges() throws GitAPIException {
 		verifyNoUncommitedChanges(git);
 	}
+	
+	protected void overrideVersion(String versionOverride) {
+		Pattern p = Pattern.compile(VersionFile.versionPatternStr);
+		Matcher m = p.matcher(versionOverride);
+		if (!m.find()) {
+			String errorMsg = String.format("The version of %s does not match the pattern %s", versionOverride, VersionFile.versionPatternStr);
+			throw new IllegalArgumentException(errorMsg);
+		}
+		
+		version.replaceMajor(m.group(VersionFile.MAJOR_GROUP));
+		version.replaceMinor(m.group(VersionFile.MINOR_GROUP));
+		version.replacePatch(m.group(VersionFile.PATCH_GROUP));
+		version.replaceSuffix(m.group(VersionFile.SUFFIX_GROUP));
+	}
 
 	protected static void verifyNoUncommitedChanges(Git git) throws GitAPIException {
 		Status status = git.status().call();

@@ -9,15 +9,21 @@ import org.gradle.api.tasks.options.Option;
 public abstract class PrepareReleaseTask extends AbstractReleaseTask {
 
 	private static enum ReleaseType {
-		MAJOR, MINOR, PATCH;
+		MAJOR, MINOR, PATCH, MANUAL;
 	}
 
 	private ReleaseType releaseType;
 	private String tagPrefix = "";
+	private String releaseVersionOverride = null;
 
-	@Option(option = "releaseType", description = "The type of release.  One of MAJOR, MINOR, PATCH")
+	@Option(option = "releaseType", description = "The type of release.  One of MAJOR, MINOR, PATCH, MANUAL.  If MANUAL is specified, releaseVersion must also be specified")
 	public void setReleaseType(ReleaseType releaseType) {
 		this.releaseType = releaseType;
+	}
+
+	@Option(option = "releaseVersion", description = "Only used with MANUAL release type.   Specifies the version to set for the release")
+	public void setReleaseVersion(String releaseVersion) {
+		releaseVersionOverride = releaseVersion;
 	}
 
 	@Input
@@ -46,24 +52,33 @@ public abstract class PrepareReleaseTask extends AbstractReleaseTask {
 				version.replaceMajor(major);
 				version.replaceMinor("0");
 				version.replacePatch("0");
+				version.replaceSuffix("");
 				break;
 
 			case MINOR:
 				String minor = String.valueOf(Integer.parseInt(version.getMinor()) + 1);
 				version.replaceMinor(minor);
 				version.replacePatch("0");
+				version.replaceSuffix("");
 				break;
 
 			case PATCH:
 				String patch = String.valueOf(Integer.parseInt(version.getPatch()) + 1);
 				version.replacePatch(patch);
+				version.replaceSuffix("");
+				break;
+
+			case MANUAL:
+				if (releaseVersionOverride == null) {
+					throw new IllegalStateException("releaseVersion must be specified with a MANUAL release type");
+				}
+				overrideVersion(releaseVersionOverride);
 				break;
 
 			default:
 				throw new IllegalStateException();
 			}
 
-			version.replaceSuffix("");
 			version.save();
 
 			git.add().addFilepattern(relativeVersionFile).call();

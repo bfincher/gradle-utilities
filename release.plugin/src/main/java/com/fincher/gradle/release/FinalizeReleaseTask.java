@@ -1,8 +1,6 @@
 package com.fincher.gradle.release;
 
 import java.io.IOException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.gradle.api.tasks.options.Option;
@@ -24,17 +22,7 @@ public abstract class FinalizeReleaseTask extends AbstractReleaseTask {
 			version.replacePatch(String.valueOf(Integer.parseInt(version.getPatch()) + 1));
 			version.replaceSuffix("-SNAPSHOT");
 		} else {			
-			Pattern p = Pattern.compile(VersionFile.versionPatternStr);
-			Matcher m = p.matcher(newVersionOverride);
-			if (!m.find()) {
-				String errorMsg = String.format("The new version of %s does not match the pattern %s", newVersionOverride, VersionFile.versionPatternStr);
-				throw new IllegalArgumentException(errorMsg);
-			}
-			
-			version.replaceMajor(m.group(VersionFile.MAJOR_GROUP));
-			version.replaceMinor(m.group(VersionFile.MINOR_GROUP));
-			version.replacePatch(m.group(VersionFile.PATCH_GROUP));
-			version.replaceSuffix(m.group(VersionFile.SUFFIX_GROUP));
+			overrideVersion(newVersionOverride);
 		}
 		
 		version.save();

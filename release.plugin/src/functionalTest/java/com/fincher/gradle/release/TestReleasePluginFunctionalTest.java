@@ -100,6 +100,25 @@ class TestReleasePluginFunctionalTest {
 		result = runWithArguments("finalizeRelease");
 		verifyFinalizeReleaseResults("0.0.3-SNAPSHOT");
 	}
+	
+	@Test
+	void tesOverridingReleaseVersion() throws IOException, GitAPIException {
+		BuildResult result = runWithArguments("prepareRelease", "--releaseType", "MANUAL", "--releaseVersion", "1.2.3-r");
+		verifyPrepareReleaseResults(result, "1.2.3-r");
+		
+		result = runWithArguments("finalizeRelease");
+		verifyFinalizeReleaseResults("1.2.4-SNAPSHOT");
+	}
+	
+	
+	@Test
+	void tesOverridingNewVersion() throws IOException, GitAPIException {
+		BuildResult result = runWithArguments("prepareRelease", "--releaseType", "PATCH");
+		verifyPrepareReleaseResults(result, "0.0.2");
+		
+		result = runWithArguments("finalizeRelease", "--newVersion", "1.2.3-r");
+		verifyFinalizeReleaseResults("1.2.3-r");
+	}
 
 	@Test
 	void testVersionFileOverride() throws IOException, GitAPIException {
