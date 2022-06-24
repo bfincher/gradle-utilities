@@ -8,16 +8,16 @@ import org.gradle.api.tasks.InputFile;
 
 public abstract class ReleaseExtension {
 
-	@InputFile
-	public abstract Property<File> getVersionFile();
+    @InputFile
+    public abstract Property<File> getVersionFile();
 
-	@Input
-	public abstract Property<String> getVersionKeyValue();
-	
-	@Input
-	public abstract Property<String> getRequiredBranchRegex();
-	
-	@Input
-	public abstract Property<String> getTagPrefix();
+    @Input
+    public abstract Property<String> getVersionKeyValue();
+
+    @Input
+    public abstract Property<String> getRequiredBranchRegex();
+
+    @Input
+    public abstract Property<String> getTagPrefix();
 
 }

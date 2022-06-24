@@ -61,10 +61,12 @@ subprojects {
         }
     }
     
+    /*
     eclipse {
     	classpath {
     		downloadSources=true
     		downloadJavadoc=true
     	}
     }
+    */
 }

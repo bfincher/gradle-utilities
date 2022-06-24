@@ -1,3 +1,12 @@
+buildscript {    
+    dependencies {
+        classpath fileTree(includes: ['*.jar'], dir: '../java.checkstyle.plugin/build/libs')
+        classpath fileTree(includes: ['*.jar'], dir: '../java.eclipse/build/libs')
+    }
+}
+
+apply plugin: com.fincher.gradle.checkstyle.CheckstyleConfigPlugin
+apply plugin: com.fincher.gradle.eclipse.EclipseSettings
 
 gradlePlugin {
 	plugins {
@@ -29,20 +38,25 @@ dependencies {
 }
 
 // Add a task to run the functional tests
-	tasks.register('functionalTest', Test) {
-    	testClassesDirs = sourceSets.functionalTest.output.classesDirs
-    	classpath = sourceSets.functionalTest.runtimeClasspath
-    	useJUnitPlatform()
-	}
+tasks.register('functionalTest', Test) {
+   	testClassesDirs = sourceSets.functionalTest.output.classesDirs
+   	classpath = sourceSets.functionalTest.runtimeClasspath
+   	useJUnitPlatform()
+}
 
-	gradlePlugin.testSourceSets(sourceSets.functionalTest)
+gradlePlugin.testSourceSets(sourceSets.functionalTest)
 
-	tasks.named('check') {
-    	// Run the functional tests as part of `check`
-    	dependsOn(tasks.functionalTest)
-	}
+tasks.named('check') {
+   	// Run the functional tests as part of `check`
+   	dependsOn(tasks.functionalTest)
+}
 
-	tasks.named('test') {
-    	// Use JUnit Jupiter for unit tests.
-    	useJUnitPlatform()
-	}
+tasks.named('test') {
+   	useJUnitPlatform()
+}
+
+tasks.checkstyleMain.dependsOn("copyCheckstyleConfig")
+
+checkstyle {
+    configDirectory = "${buildDir}/generated/checkstyleConfig" as File
+}

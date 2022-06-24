@@ -42,6 +42,7 @@
     </module>
 
     <module name="TreeWalker">
+        <module name="MissingOverride"/>
         <module name="OuterTypeFilename"/>
         <module name="IllegalTokenText">
             <property name="tokens" value="STRING_LITERAL, CHAR_LITERAL"/>
