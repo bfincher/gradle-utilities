@@ -70,6 +70,13 @@ public class FinalizeReleaseTaskTest extends BaseReleaseTaskTest<FinalizeRelease
 		verifyResults("0.0.2-SNAPSHOT");
 	}
 	
+	@Test
+	public void testOverrideNewVersion() throws Exception {
+		task.setNewVersion("1.1.1");
+		task.releaseTaskAction();
+		verifyResults("1.1.1");
+	}
+	
 	@Override
 	String getTaskName() {
 		return "finalizeRelease";
