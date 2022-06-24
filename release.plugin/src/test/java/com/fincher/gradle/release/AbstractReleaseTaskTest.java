@@ -3,60 +3,107 @@
  */
 package com.fincher.gradle.release;
 
-import java.io.IOException;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.when;
 
-import javax.inject.Inject;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.Status;
+import org.eclipse.jgit.api.StatusCommand;
+import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Repository;
 import org.gradle.api.Project;
+import org.gradle.api.Task;
 import org.gradle.testfixtures.ProjectBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-public class AbstractReleaseTaskTest {
-	
-	@Mock
-	private Repository repo;
-	
-	@Mock
-	private Git git;
-	
-	@BeforeEach
-	public void beforeEach() {
-		MockitoAnnotations.openMocks(this);
-	}
-	
-	@Test
-	public void pluginRegistersATask() {
-		// Create a test project and apply the plugin
-		Project project = ProjectBuilder.builder().build();
+public abstract class AbstractReleaseTaskTest <T extends TestAbstractReleaseClass> {
 
-		project.getTasks().register("abstractReleaseTask", TestClass.class);
-		project.getTasks().findByName("abstractReleaseTask");
-		project.getPlugins().apply("release.prepareRelease");
-//
-//		// Verify the result
-//		assertNotNull(project.getTasks().findByName("greeting"));
+	static class Mocks {
+		@Mock
+		Repository repo;
+		@Mock
+		Git git;
+		@Mock
+		StatusCommand statusCmd;
+		@Mock
+		Status status;
+
+		void initMocks() throws GitAPIException, IOException {
+			MockitoAnnotations.openMocks(this);
+			when(git.status()).thenReturn(statusCmd);
+			when(statusCmd.call()).thenReturn(status);
+			when(status.hasUncommittedChanges()).thenReturn(false);
+			when(repo.getBranch()).thenReturn("master");
+		}
 	}
+
+	Mocks mocks;
+	Project project;
+	Path projectDir;
+	Path versionFile;
+	T task;
+	Class<T> taskClass;
 	
-	abstract static class TestClass extends AbstractReleaseTask {
-		
-		@Inject
-		public TestClass() {
-			
-		}
-		
-		@Override
-		protected Repository initGitRepo() throws IOException {
-			return repo;
-		}
-		
-		@Override
-		protected Git initGit(Repository repo) {
-			return git;
-		}
+	private void AbstractReleastTaskTest(Class<T> taskClass) {
+		this.taskClass = taskClass;
 	}
+
+	@BeforeEach
+	public void beforeEach() throws IOException, GitAPIException {
+		mocks = new Mocks();
+		mocks.initMocks();
+
+		project = ProjectBuilder.builder().build();
+		projectDir = project.getProjectDir().toPath();
+		versionFile = projectDir.resolve("gradle.properties");
+		Files.writeString(versionFile, "version=0.0.1");
+
+		project.getTasks().register("prepareRelease", TestAbstractReleaseClass.class);
+		Task t = project.getTasks().findByName("prepareRelease");
+		assertNotNull(t);
+
+		task = taskClass.cast(t);
+		task.setMocks(mocks);
+	}
+
+	@Test
+	public void basicTest() throws Exception {
+		task.releaseTaskAction();
+	}
+
+	@Test
+	public void testMainBranch() throws Exception {
+		when(mocks.repo.getBranch()).thenReturn("main");
+		task.releaseTaskAction();
+	}
+
+	@Test
+	public void testInvalidBranch() throws Exception {
+		when(mocks.repo.getBranch()).thenReturn("other1");
+		assertThrows(IllegalStateException.class, () -> task.releaseTaskAction());
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "other1", "other2" })
+	public void testOverrideBranch(String branchName) throws Exception {
+		task.setProperty("requiredBranchRegex", "(other1)|(other2)");
+		when(mocks.repo.getBranch()).thenReturn(branchName);
+	}
+
+	@Test
+	public void testUncommimtedChanges() {
+		when(mocks.status.hasUncommittedChanges()).thenReturn(true);
+		assertThrows(IllegalStateException.class, () -> task.releaseTaskAction());
+	}
+
 }

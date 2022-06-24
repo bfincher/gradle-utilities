@@ -39,6 +39,8 @@ public abstract class PrepareReleaseTask extends AbstractReleaseTask {
 	@Override
 	public void releaseTaskAction() throws IOException, GitAPIException {
 		super.releaseTaskAction();
+		
+		getLogger().debug("releaseType = {}", getReleaseType());
 
 		try {
 			switch (getReleaseType()) {

@@ -1,7 +1,7 @@
 
 gradlePlugin {
 	plugins {
-		eclipse {
+		release {
 			id = "fincher.release"
 			implementationClass = "com.fincher.gradle.release.ReleasePlugin"
 		}
@@ -24,6 +24,7 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.8.1'
     testImplementation 'org.mockito:mockito-core:4.6.1'
+    testImplementation 'com.google.guava:guava:31.1-jre'
     functionalTestImplementation 'com.google.guava:guava:31.1-jre'
 }
 
