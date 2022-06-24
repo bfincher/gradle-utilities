@@ -3,78 +3,14 @@
  */
 package com.fincher.gradle.release;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.Status;
-import org.eclipse.jgit.api.StatusCommand;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.Repository;
-import org.gradle.api.Project;
-import org.gradle.api.Task;
-import org.gradle.testfixtures.ProjectBuilder;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
-public abstract class AbstractReleaseTaskTest <T extends TestAbstractReleaseClass> {
-
-	static class Mocks {
-		@Mock
-		Repository repo;
-		@Mock
-		Git git;
-		@Mock
-		StatusCommand statusCmd;
-		@Mock
-		Status status;
-
-		void initMocks() throws GitAPIException, IOException {
-			MockitoAnnotations.openMocks(this);
-			when(git.status()).thenReturn(statusCmd);
-			when(statusCmd.call()).thenReturn(status);
-			when(status.hasUncommittedChanges()).thenReturn(false);
-			when(repo.getBranch()).thenReturn("master");
-		}
-	}
-
-	Mocks mocks;
-	Project project;
-	Path projectDir;
-	Path versionFile;
-	T task;
-	Class<T> taskClass;
-	
-	private void AbstractReleastTaskTest(Class<T> taskClass) {
-		this.taskClass = taskClass;
-	}
-
-	@BeforeEach
-	public void beforeEach() throws IOException, GitAPIException {
-		mocks = new Mocks();
-		mocks.initMocks();
-
-		project = ProjectBuilder.builder().build();
-		projectDir = project.getProjectDir().toPath();
-		versionFile = projectDir.resolve("gradle.properties");
-		Files.writeString(versionFile, "version=0.0.1");
-
-		project.getTasks().register("prepareRelease", TestAbstractReleaseClass.class);
-		Task t = project.getTasks().findByName("prepareRelease");
-		assertNotNull(t);
-
-		task = taskClass.cast(t);
-		task.setMocks(mocks);
-	}
+public class AbstractReleaseTaskTest extends BaseReleaseTaskTest<TestAbstractReleaseClass> {
 
 	@Test
 	public void basicTest() throws Exception {
@@ -83,13 +19,13 @@ public abstract class AbstractReleaseTaskTest <T extends TestAbstractReleaseClas
 
 	@Test
 	public void testMainBranch() throws Exception {
-		when(mocks.repo.getBranch()).thenReturn("main");
+		when(repo.getBranch()).thenReturn("main");
 		task.releaseTaskAction();
 	}
 
 	@Test
 	public void testInvalidBranch() throws Exception {
-		when(mocks.repo.getBranch()).thenReturn("other1");
+		when(repo.getBranch()).thenReturn("other1");
 		assertThrows(IllegalStateException.class, () -> task.releaseTaskAction());
 	}
 
@@ -97,13 +33,21 @@ public abstract class AbstractReleaseTaskTest <T extends TestAbstractReleaseClas
 	@ValueSource(strings = { "other1", "other2" })
 	public void testOverrideBranch(String branchName) throws Exception {
 		task.setProperty("requiredBranchRegex", "(other1)|(other2)");
-		when(mocks.repo.getBranch()).thenReturn(branchName);
+		when(repo.getBranch()).thenReturn(branchName);
 	}
 
 	@Test
 	public void testUncommimtedChanges() {
-		when(mocks.status.hasUncommittedChanges()).thenReturn(true);
+		when(status.hasUncommittedChanges()).thenReturn(true);
 		assertThrows(IllegalStateException.class, () -> task.releaseTaskAction());
 	}
+	
+	String getTaskName() {
+		return "abstractReleaseTask";
+	}
+
+	 Class<TestAbstractReleaseClass> getTaskClass() {
+		 return TestAbstractReleaseClass.class;
+	 }
 
 }

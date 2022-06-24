@@ -10,12 +10,12 @@ import org.gradle.api.tasks.options.Option;
 
 public abstract class PrepareReleaseTask extends AbstractReleaseTask {
 
-	private static enum ReleaseType {
+	static enum ReleaseType {
 		MAJOR, MINOR, PATCH, MANUAL;
 	}
 
-	private ReleaseType releaseType;
-	private String releaseVersionOverride = null;
+	ReleaseType releaseType;
+	String releaseVersionOverride = null;
 
 	@Option(option = "releaseType", description = "The type of release.  One of MAJOR, MINOR, PATCH, MANUAL.  If MANUAL is specified, releaseVersion must also be specified")
 	public void setReleaseType(ReleaseType releaseType) {
@@ -38,9 +38,7 @@ public abstract class PrepareReleaseTask extends AbstractReleaseTask {
 
 	@Override
 	public void releaseTaskAction() throws IOException, GitAPIException {
-		super.releaseTaskAction();
-		
-		getLogger().debug("releaseType = {}", getReleaseType());
+		super.releaseTaskAction();		
 
 		try {
 			switch (getReleaseType()) {

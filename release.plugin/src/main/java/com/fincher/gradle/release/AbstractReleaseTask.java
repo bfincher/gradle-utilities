@@ -23,10 +23,27 @@ import org.gradle.api.tasks.TaskAction;
 
 public abstract class AbstractReleaseTask extends DefaultTask {
 
+	@FunctionalInterface
+	static interface JGitRepoFactory {
+		Repository initGitRepo() throws IOException;
+	}
+
+	@FunctionalInterface
+	static interface JGitFactory {
+		Git initGit(Repository repo);
+	}
+
 	protected Repository repo;
 	protected Git git;
 	protected VersionFile version;
 	protected String relativeVersionFile;
+	private JGitRepoFactory repoFactory;
+	private JGitFactory gitFactory;
+
+	public AbstractReleaseTask() {
+		repoFactory = this::initGitRepo;
+		gitFactory = (repo) -> new Git(repo);
+	}
 
 	@InputFile
 	@Optional
@@ -50,8 +67,8 @@ public abstract class AbstractReleaseTask extends DefaultTask {
 
 		relativeVersionFile = projectDir.relativize(version.getFile()).toString();
 
-		repo = initGitRepo();
-		git = initGit(repo);
+		repo = repoFactory.initGitRepo();
+		git = gitFactory.initGit(repo);
 
 		verifyNoUncommitedChanges();
 
@@ -63,12 +80,20 @@ public abstract class AbstractReleaseTask extends DefaultTask {
 			throw new IllegalStateException(errorMsg);
 		}
 	}
+	
+	protected void setJGitRepoFactory(JGitRepoFactory factory) {
+		repoFactory = factory;
+	}
+	
+	protected void setGitFactory(JGitFactory factory) {
+		gitFactory = factory;
+	}
 
 	protected static String replaceGroup(String source, Matcher matcher, String group, String replacement) {
 		return new StringBuilder(source).replace(matcher.start(group), matcher.end(group), replacement).toString();
 	}
 
-	protected Repository initGitRepo() throws IOException {
+	private Repository initGitRepo() throws IOException {
 		Path dirToSearch = getProject().getProjectDir().toPath();
 		Path testDir = dirToSearch.resolve(".git");
 		Path gitDir = null;
@@ -88,22 +113,19 @@ public abstract class AbstractReleaseTask extends DefaultTask {
 		return new FileRepositoryBuilder().setGitDir(gitDir.toFile()).build();
 	}
 
-	protected Git initGit(Repository repo) {
-		return new Git(repo);
-	}
-
 	protected void verifyNoUncommitedChanges() throws GitAPIException {
 		verifyNoUncommitedChanges(git);
 	}
-	
+
 	protected void overrideVersion(String versionOverride) {
 		Pattern p = Pattern.compile(VersionFile.versionPatternStr);
 		Matcher m = p.matcher(versionOverride);
 		if (!m.find()) {
-			String errorMsg = String.format("The version of %s does not match the pattern %s", versionOverride, VersionFile.versionPatternStr);
+			String errorMsg = String.format("The version of %s does not match the pattern %s", versionOverride,
+					VersionFile.versionPatternStr);
 			throw new IllegalArgumentException(errorMsg);
 		}
-		
+
 		version.replaceMajor(m.group(VersionFile.MAJOR_GROUP));
 		version.replaceMinor(m.group(VersionFile.MINOR_GROUP));
 		version.replacePatch(m.group(VersionFile.PATCH_GROUP));
