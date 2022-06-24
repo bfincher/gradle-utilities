@@ -1,10 +1,13 @@
 package com.fincher.gradle.release;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.AdditionalAnswers.returnsFirstArg;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,6 +23,7 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Repository;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
+import org.gradle.api.provider.Property;
 import org.gradle.testfixtures.ProjectBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Mock;
@@ -50,6 +54,10 @@ public abstract class BaseReleaseTaskTest<T extends AbstractReleaseTask> {
 	PushCommand pushCommand;
 	@Mock
 	TagCommand tagCommand;
+	@Mock
+	Property<String> versionKeyValueProperty;
+	@Mock
+	Property<File> versionFileProperty;
 
 	@BeforeEach
 	public void beforeEach() throws GitAPIException, IOException {
@@ -90,6 +98,9 @@ public abstract class BaseReleaseTaskTest<T extends AbstractReleaseTask> {
 		when(tagCommand.setMessage(anyString())).thenReturn(tagCommand);
 		when(tagCommand.setName(anyString())).thenReturn(tagCommand);
 		when(tagCommand.setAnnotated(anyBoolean())).thenReturn(tagCommand);
+		
+		when(versionKeyValueProperty.getOrElse(anyString())).then(returnsFirstArg());
+		when(versionFileProperty.getOrElse(any(File.class))).then(returnsFirstArg());
 	}
 
 	abstract String getTaskName();
