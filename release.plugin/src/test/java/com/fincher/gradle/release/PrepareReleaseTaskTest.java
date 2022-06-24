@@ -35,7 +35,16 @@ public class PrepareReleaseTaskTest extends BaseReleaseTaskTest<PrepareReleaseTa
 	}
 
 	@Test
-	public void testPatch() throws Exception {
+	public void testPatchWithSnapshot() throws Exception {
+		Files.writeString(versionFile, "version=0.0.1-SNAPSHOT");
+		task.setReleaseType(ReleaseType.PATCH);
+		task.releaseTaskAction();
+		verifyResults("0.0.1");
+	}
+	
+	@Test
+	public void testPatchWithoutSnapshot() throws Exception {
+		Files.writeString(versionFile, "version=0.0.1");
 		task.setReleaseType(ReleaseType.PATCH);
 		task.releaseTaskAction();
 		verifyResults("0.0.2");
@@ -64,16 +73,16 @@ public class PrepareReleaseTaskTest extends BaseReleaseTaskTest<PrepareReleaseTa
 		Files.write(versionFile, Lists.newArrayList("some stuff", "version=0.0.1", "some other stuff"));
 		task.setProperty("versionFile", versionFile.toFile());
 
-		task.setReleaseType(ReleaseType.PATCH);
+		task.setReleaseType(ReleaseType.MINOR);
 		task.releaseTaskAction();
 
 		// do extra checking of the file here to ensure that the original structure is
 		// still in place
 		List<String> lines = Files.readAllLines(versionFile);
 		assertEquals(3, lines.size());
-		assertEquals("version=0.0.2", lines.get(1));
+		assertEquals("version=0.1.0", lines.get(1));
 
-		verifyResults("0.0.2");
+		verifyResults("0.1.0");
 	}
 
 	@Test
@@ -83,16 +92,16 @@ public class PrepareReleaseTaskTest extends BaseReleaseTaskTest<PrepareReleaseTa
 		task.getVersionKeyValue().set(key);
 		Files.write(versionFile, Lists.newArrayList("some stuff", key + " = '0.0.1'", "some other stuff"));
 
-		task.setReleaseType(ReleaseType.PATCH);
+		task.setReleaseType(ReleaseType.MINOR);
 		task.releaseTaskAction();
 
 		// do extra checking of the file here to ensure that the original structure is
 		// still in place
 		List<String> lines = Files.readAllLines(versionFile);
 		assertEquals(3, lines.size());
-		assertEquals(key + " = '0.0.2'", lines.get(1));
+		assertEquals(key + " = '0.1.0'", lines.get(1));
 
-		verifyResults("0.0.2");
+		verifyResults("0.1.0");
 	}
 
 	@Test
@@ -106,15 +115,15 @@ public class PrepareReleaseTaskTest extends BaseReleaseTaskTest<PrepareReleaseTa
 	@Test
 	public void testMainBranch() throws Exception {
 		when(repo.getBranch()).thenReturn("main");
-		task.setReleaseType(ReleaseType.PATCH);
+		task.setReleaseType(ReleaseType.MINOR);
 		task.releaseTaskAction();
-		verifyResults("0.0.2");
+		verifyResults("0.1.0");
 	}
 
 	@Test
 	public void testInvalidBranch() throws Exception {
 		when(repo.getBranch()).thenReturn("other1");
-		task.setReleaseType(ReleaseType.PATCH);
+		task.setReleaseType(ReleaseType.MINOR);
 		assertThrows(IllegalStateException.class, () -> task.releaseTaskAction());
 		verifyNoResults();
 	}
@@ -125,9 +134,9 @@ public class PrepareReleaseTaskTest extends BaseReleaseTaskTest<PrepareReleaseTa
 		when(repo.getBranch()).thenReturn(branch);
 		task.getRequiredBranchRegex().set("(other1)|(other2)");
 
-		task.setReleaseType(ReleaseType.PATCH);
+		task.setReleaseType(ReleaseType.MAJOR);
 		task.releaseTaskAction();
-		verifyResults("0.0.2");
+		verifyResults("1.0.0");
 	}
 
 	@Override

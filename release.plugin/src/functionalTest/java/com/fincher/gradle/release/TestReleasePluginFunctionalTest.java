@@ -93,7 +93,20 @@ class TestReleasePluginFunctionalTest {
 	}
 
 	@Test
-	void testPatchRelease() throws IOException, GitAPIException {
+	void testPatchReleaseWithSnapshot() throws IOException, GitAPIException {
+		Files.writeString(gradlePropertiesFile, versionKeyValue + " = 0.0.1-SNAPSHOT");
+		gitAddAndCommit(versionFile.getFileName().toString(), "update version");
+		BuildResult result = runWithArguments("prepareRelease", "--releaseType", "PATCH");
+		verifyPrepareReleaseResults(result, "0.0.1");
+
+		result = runWithArguments("finalizeRelease");
+		verifyFinalizeReleaseResults("0.0.2-SNAPSHOT");
+	}
+	
+	@Test
+	void testPatchReleaseWithoutSnapshot() throws IOException, GitAPIException {
+		Files.writeString(gradlePropertiesFile, versionKeyValue + " = 0.0.1");
+		gitAddAndCommit(versionFile.getFileName().toString(), "update version");
 		BuildResult result = runWithArguments("prepareRelease", "--releaseType", "PATCH");
 		verifyPrepareReleaseResults(result, "0.0.2");
 
@@ -114,7 +127,7 @@ class TestReleasePluginFunctionalTest {
 	@Test
 	void tesOverridingNewVersion() throws IOException, GitAPIException {
 		BuildResult result = runWithArguments("prepareRelease", "--releaseType", "PATCH");
-		verifyPrepareReleaseResults(result, "0.0.2");
+		verifyPrepareReleaseResults(result, "0.0.1");
 
 		result = runWithArguments("finalizeRelease", "--newVersion", "1.2.3-r");
 		verifyFinalizeReleaseResults("1.2.3-r");

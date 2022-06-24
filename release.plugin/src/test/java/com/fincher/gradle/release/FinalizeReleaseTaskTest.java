@@ -14,7 +14,6 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.fincher.gradle.release.PrepareReleaseTask.ReleaseType;
 import com.google.common.collect.Lists;
 
 public class FinalizeReleaseTaskTest extends BaseReleaseTaskTest<FinalizeReleaseTask> {

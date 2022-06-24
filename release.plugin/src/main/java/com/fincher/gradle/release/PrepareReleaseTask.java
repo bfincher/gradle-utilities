@@ -38,7 +38,7 @@ public abstract class PrepareReleaseTask extends AbstractReleaseTask {
 
 	@Override
 	public void releaseTaskAction() throws IOException, GitAPIException {
-		super.releaseTaskAction();		
+		super.releaseTaskAction();
 
 		try {
 			switch (getReleaseType()) {
@@ -58,8 +58,12 @@ public abstract class PrepareReleaseTask extends AbstractReleaseTask {
 				break;
 
 			case PATCH:
-				String patch = String.valueOf(Integer.parseInt(version.getPatch()) + 1);
-				version.replacePatch(patch);
+				// If the current version is a snapshot, just remove the snapshot
+				if (!version.getSuffix().equals("-SNAPSHOT")) {
+					String patch = String.valueOf(Integer.parseInt(version.getPatch()) + 1);
+					version.replacePatch(patch);
+				}
+
 				version.replaceSuffix("");
 				break;
 
