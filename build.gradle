@@ -11,7 +11,7 @@
     }
 
 allprojects {
-    group = 'fincher'
+    group = 'com.fincher'
 }
 
 subprojects {
@@ -25,6 +25,15 @@ subprojects {
     	toolchain {
         	languageVersion = JavaLanguageVersion.of(11)
     	}
+	}
+	
+	sourceSets {
+		functionalTest {
+			java {
+				compileClasspath += main.output
+				runtimeClasspath += main.output
+			}
+		}
 	}
 
     repositories {
@@ -61,12 +70,29 @@ subprojects {
         }
     }
     
-    /*
+    configurations.functionalTestImplementation.extendsFrom(configurations.testImplementation)
+    
+    tasks.register('functionalTest', Test) {
+   		testClassesDirs = sourceSets.functionalTest.output.classesDirs
+   		classpath = sourceSets.functionalTest.runtimeClasspath
+   		useJUnitPlatform()
+	}
+
+	gradlePlugin.testSourceSets(sourceSets.functionalTest)
+
+	tasks.named('check') {
+   		// Run the functional tests as part of `check`
+   		dependsOn(tasks.functionalTest)
+	}
+
+	tasks.named('test') {
+   		useJUnitPlatform()
+	}
+    
     eclipse {
     	classpath {
     		downloadSources=true
     		downloadJavadoc=true
     	}
     }
-    */
 }

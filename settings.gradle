@@ -1,3 +1,2 @@
 include 'java.eclipse'
 include 'java.checkstyle.plugin'
-include 'release.plugin'

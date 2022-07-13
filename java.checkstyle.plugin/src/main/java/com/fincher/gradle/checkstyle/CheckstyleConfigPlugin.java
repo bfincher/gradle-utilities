@@ -8,39 +8,54 @@ import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.List;
 
+import javax.inject.Inject;
+
+import org.gradle.api.DefaultTask;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.plugins.PluginContainer;
 import org.gradle.api.plugins.quality.CheckstyleExtension;
 import org.gradle.api.plugins.quality.CheckstylePlugin;
+import org.gradle.api.tasks.TaskAction;
 
 public class CheckstyleConfigPlugin implements Plugin<Project> {
+	
+	static final String taskName = "copyCheckstyleConfig";
+	
+	abstract static class CopyCheckstyleConfigTask extends DefaultTask {
+		
+		Path configDir;
+		
+		@Inject
+		public CopyCheckstyleConfigTask() {
+		}
+		
+		void setConfigDir(Path configDir) {
+			this.configDir = configDir;
+		}
+		
+		@TaskAction
+		public void copyConfig() throws IOException {
+			if (!Files.exists(configDir)) {
+				Files.createDirectories(configDir);
+			}
+
+			Path checkstyleXml = configDir.resolve("checkstyle.xml");
+			Path suppressionsXml = configDir.resolve("suppressions.xml");
+
+			copyFileFromClasspathIfChanged("checkstyle.xml", checkstyleXml);
+			copyFileFromClasspathIfChanged("suppressions.xml", suppressionsXml);
+		}
+	}
+	
 	public void apply(Project project) {
 		PluginContainer plugins = project.getPlugins();
 		plugins.apply(CheckstylePlugin.class);
 		
-		
-		project.task("copyCheckstyleConfig").doFirst((task) -> {
-			try {
-				Path defaultConfigDir = project.getBuildDir().toPath().resolve("checkstyleConfig");
-				CheckstyleExtension parentExtension = project.getExtensions().getByType(CheckstyleExtension.class);
-
-				Path configDir = parentExtension.getConfigDirectory().getAsFile().getOrElse(defaultConfigDir.toFile())
-						.toPath();
-
-				if (!Files.exists(configDir)) {
-					Files.createDirectories(configDir);
-				}
-
-				Path checkstyleXml = configDir.resolve("checkstyle.xml");
-				Path suppressionsXml = configDir.resolve("suppressions.xml");
-
-				copyFileFromClasspathIfChanged("checkstyle.xml", checkstyleXml);
-				copyFileFromClasspathIfChanged("suppressions.xml", suppressionsXml);
-
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
+		project.getTasks().register(taskName, CopyCheckstyleConfigTask.class, task -> {
+			CheckstyleExtension parentExtension = project.getExtensions().getByType(CheckstyleExtension.class);
+		    Path configDir = parentExtension.getConfigDirectory().getAsFile().get().toPath();
+		    task.setConfigDir(configDir);
 		});
 	}
 
