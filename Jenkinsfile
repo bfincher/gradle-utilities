@@ -52,7 +52,7 @@ pipeline {
         stage('Publish') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'nexus.fincherhome.com', usernameVariable: 'publishUsername', passwordVariable: 'publishPassword')]) {
-                    sh './gradlew publish ' + gradleOpts
+                    sh "./gradlew publish -PpublishUsername=${publishUsername} -PpublishPassword=${publishPassword} "+ gradleOpts
                 }
             }
         }
