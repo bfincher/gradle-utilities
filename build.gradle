@@ -1,14 +1,22 @@
     buildscript {
         repositories {
-            maven {
-                url "https://plugins.gradle.org/m2/"
+            if (project.hasProperty('localNexus')) {
+                maven {
+                    url "${localNexus}"
+                }
+            } else {
+                maven {
+                    url "https://plugins.gradle.org/m2/"
+                }
+            }
+
+            dependencies {
+                classpath 'com.fincher:gradle-release:0.0.3'
             }
         }
-
-        dependencies {
-            classpath "net.researchgate:gradle-release:2.8.1"
-        }
     }
+
+apply plugin: 'com.fincher.release'
 
 allprojects {
     group = 'com.fincher'

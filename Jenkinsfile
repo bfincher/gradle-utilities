@@ -57,7 +57,7 @@ pipeline {
           sh "git config --global user.email 'brian@fincherhome.com' && git config --global user.name 'Brian Fincher'"
           
           if (performRelease) {
-            sh './gradlew prepareRelease ' + $prepareReleaseOptions + ' ' + gradleOpts 
+            sh './gradlew prepareRelease ' + prepareReleaseOptions + ' ' + gradleOpts 
           }
         }
       }
@@ -82,7 +82,7 @@ pipeline {
       when { expression { performRelease || params.publish } }
       steps {
         withCredentials([usernamePassword(credentialsId: 'nexus.fincherhome.com', usernameVariable: 'publishUsername', passwordVariable: 'publishPassword')]) {
-          sh "./gradlew publish -PpublishUsername=${publishUsername} -PpublishPassword=${publishPassword} "+ gradleOpts
+          sh './gradlew publish -PpublishUsername=${publishUsername} -PpublishPassword=${publishPassword} ' + gradleOpts
         }
       }
     }
