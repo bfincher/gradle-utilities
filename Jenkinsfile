@@ -9,51 +9,83 @@ properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKe
 disableConcurrentBuilds(), pipelineTriggers([[$class: 'PeriodicFolderTrigger', interval: '1d']])])
 
 pipeline {
-    agent any
+  agent any
 
-    parameters {
-        string(defaultValue: '', description: 'Perform a release with the given version', name: 'release')
-        string(defaultValue: '', description: 'Extra Gradle Options', name: 'extraGradleOpts')
-    }
+  parameters {
+    string(defaultValue: '', description: 'Extra Gradle Options', name: 'extraGradleOpts')
+    booleanParam(name: 'majorRelease', defaultValue: false, description: 'Perform a major release')
+    booleanParam(name: 'minorRelease', defaultValue: false, description: 'Perform a minor release')
+    booleanParam(name: 'patchRelease', defaultValue: false, description: 'Perform a patch release')
+    booleanParam(name: 'publish', defaultValue: false, description: 'Publish to nexus')
+  }
 
-    tools {
-        jdk 'jdk11'
-    }
+  tools {
+    jdk 'jdk11'
+  }
 
-    stages {
-        stage('Prepare') {
-            steps {
-                script {
-                   if (!params.release.isEmpty()) {
-                       performRelease = true
-                   }                           
-                   if (!params.extraGradleOpts.isEmpty()) {
-                       gradleOpts = gradleOpts + extraGradleOpts
-                   }
-               }
-            }
+  stages {
+    stage('Prepare') {
+      steps {
+        script {
+          def releaseOptionCount = 0;
+          def prepareReleaseOptions = "";
+          
+          if (params.majorRelease) {
+            performRelease = true
+            prepareReleaseOptions = "--releaseType MAJOR"
+            releaseOptionCount++
+          }
+          if (params.minorRelease) {
+            performRelease = true
+            prepareReleaseOptions = "--releaseType MINOR"
+            releaseOptionCount++
+          }
+          if (params.patchRelease) {
+            performRelease = true
+            prepareReleaseOptions = "--releaseType PATCH"
+            releaseOptionCount++
+          }
+
+          if (releaseOptionCount > 1) {
+            error("Only one of major, minor, or patch release options can be selected")
+          }                         
+  
+          if (!params.extraGradleOpts.isEmpty()) {
+            gradleOpts = gradleOpts + extraGradleOpts
+          }
+
+          sh "git config --global user.email 'brian@fincherhome.com' && git config --global user.name 'Brian Fincher'"
+          
+          if (performRelease) {
+            sh './gradlew prepareRelease ' + prepareReleaseOptions + ' ' + gradleOpts 
+          }
         }
+      }
+    }
 		
-        stage('Build') {
-            steps {
-                sh './gradlew clean build ' + gradleOpts
-            }
-        }
-
-        stage('Release') {
-            when { expression { performRelease } }
-            steps {
-                sh "./gradlew release -Prelease.releaseVersion=${params.release} -Prelease.newVersion=${params.release}-SNAPSHOT " + gradleOpts
-            }
-        }
-		
-        stage('Publish') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'nexus.fincherhome.com', usernameVariable: 'publishUsername', passwordVariable: 'publishPassword')]) {
-                    sh './gradlew publish ' + gradleOpts
-                }
-            }
-        }
-
+    stage('Build') {
+      steps {
+        sh './gradlew clean build ' + gradleOpts
+      }
     }
+
+    stage('Release') {
+      when { expression { performRelease } }
+      steps {
+        sshagent (credentials: ['bfincher_git_private_key']) {
+          sh "./gradlew release -Prelease.useAutomaticVersion=true -Prelease.releaseVersion=${params.release} " + gradleOpts
+        }
+      }
+    }
+		
+    stage('Publish') {
+      when { expression { performRelease || params.publish } }
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'nexus.fincherhome.com', usernameVariable: 'publishUsername', passwordVariable: 'publishPassword')]) {
+          sh './gradlew publish -PpublishUsername=${publishUsername} -PpublishPassword=${publishPassword} ' + gradleOpts
+        }
+      }
+    }
+
+  }
 }
