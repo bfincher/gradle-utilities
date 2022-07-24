@@ -51,7 +51,7 @@ pipeline {
           }                         
   
           if (!params.extraGradleOpts.isEmpty()) {
-            gradleOpts = gradleOpts + extraGradleOpts
+            gradleOpts = gradleOpts + " " + extraGradleOpts
           }
 
           sh "git config --global user.email 'brian@fincherhome.com' && git config --global user.name 'Brian Fincher'"
@@ -68,24 +68,25 @@ pipeline {
         sh './gradlew clean build ' + gradleOpts
       }
     }
-
-    stage('Release') {
-      when { expression { performRelease } }
-      steps {
-        sshagent (credentials: ['bfincher_git_private_key']) {
-          sh "./gradlew release -Prelease.useAutomaticVersion=true -Prelease.releaseVersion=${params.release} " + gradleOpts
-        }
-      }
-    }
-		
-    stage('Publish') {
+    
+    stage('Finalize') {
       when { expression { performRelease || params.publish } }
       steps {
-        withCredentials([usernamePassword(credentialsId: 'nexus.fincherhome.com', usernameVariable: 'publishUsername', passwordVariable: 'publishPassword')]) {
-          sh './gradlew publish -PpublishUsername=${publishUsername} -PpublishPassword=${publishPassword} ' + gradleOpts
+        script {
+          if (performRelease) {
+            withCredentials([sshUserPrivateKey(credentialsId: "bfincher_git_private_key", keyFileVariable: 'keyfile')]) {
+              sh 'echo keyfile = ${keyfile}'
+			  sh './gradlew finalizeRelease -PsshKeyFile=${keyfile} ' + gradleOpts
+            }
+          }
+          
+          if (performRelease || params.publish ) [
+            withCredentials([usernamePassword(credentialsId: 'nexus.fincherhome.com', usernameVariable: 'publishUsername', passwordVariable: 'publishPassword')]) {
+              sh './gradlew publish -PpublishUsername=${publishUsername} -PpublishPassword=${publishPassword} ' + gradleOpts
+            }
+          ]
         }
       }
     }
-
   }
 }
