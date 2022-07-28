@@ -1,8 +1,0 @@
-gradlePlugin {
-	plugins {
-		eclipse {
-			id = "com.fincher.java.eclipse"
-			implementationClass = "com.fincher.gradle.eclipse.EclipseSettings"
-		}
-	}
-}
