@@ -1,25 +1,52 @@
-    buildscript {
-        repositories {
-            if (project.hasProperty('localNexus')) {
-                maven {
-                    url "${localNexus}"
-                }
-            } else {
-                maven {
-                    mavenCentral()
-                }
-            }
-
-            dependencies {
-                classpath 'com.fincher:gradle-release:0.1.0'
-            }
-        }
+buildscript {
+  repositories {
+    if (project.hasProperty('localNexus')) {
+      maven {
+        url "${localNexus}"
+      }
+    } else {
+      maven {
+        mavenCentral()
+      }
     }
+
+    dependencies {
+      classpath 'com.fincher:gradle-release:0.1.0'
+    }
+  }
+}
 
 apply plugin: 'com.fincher.release'
 
-allprojects {
-    group = 'com.fincher'
+group = 'com.fincher'
+
+apply plugin: 'java-gradle-plugin'
+apply plugin: 'maven-publish'
+apply plugin: 'eclipse'
+
+gradlePlugin {
+  plugins {
+    checkstyle {
+      id = "com.fincher.java.checkstyle"
+      implementationClass = "com.fincher.gradle.checkstyle.CheckstyleConfigPlugin"
+    }
+		
+    eclipse {
+      id = "com.fincher.java.eclipse"
+      implementationClass = "com.fincher.gradle.eclipse.EclipseSettings"
+     }
+  }
+}
+
+dependencies {
+  testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+  testImplementation 'org.junit.jupiter:junit-jupiter:5.8.1'
+}
+
+java {
+  toolchain {
+    languageVersion = JavaLanguageVersion.of(11)
+  }
 }
 
 release {
@@ -27,84 +54,71 @@ release {
     gitRepositorySshPrivateKeyFile = file("${sshKeyFile}")
   }
 }
-
-subprojects {
-    apply plugin: 'java-gradle-plugin'
-    apply plugin: 'maven-publish'
-    apply plugin: 'eclipse'
-
+	
+sourceSets {
+  functionalTest {
     java {
-    	toolchain {
-        	languageVersion = JavaLanguageVersion.of(11)
-    	}
-	}
-	
-	sourceSets {
-		functionalTest {
-			java {
-				compileClasspath += main.output
-				runtimeClasspath += main.output
-			}
-		}
-	}
-
-    repositories {
-        mavenLocal()
-        if (project.hasProperty('localNexus')) {
-            maven {
-                url "${localNexus}"
-            }
-        } else {
-            mavenCentral()
-        }
+      compileClasspath += main.output
+      runtimeClasspath += main.output
     }
+  }
+}
+
+repositories {
+  mavenLocal()
+  if (project.hasProperty('localNexus')) {
+    maven {
+      url "${localNexus}"
+    }
+  } else {
+    mavenCentral()
+  }
+}
 	
-    publishing {
-        repositories {
-            maven {
-                if (project.hasProperty("publishUsername") && project.hasProperty("publishPassword")) { 
-                    credentials {
-                        username = "${publishUsername}"
-                        password = "${publishPassword}"
-                    }
+publishing {
+  repositories {
+    maven {
+      if (project.hasProperty("publishUsername") && project.hasProperty("publishPassword")) { 
+        credentials {
+          username = "${publishUsername}"
+          password = "${publishPassword}"
+        }
 		
-                    if (project.version.endsWith('-SNAPSHOT')) {
-                        url "${publishSnapshotUrl}"
-                    } else {
-                        url "${publishReleaseUrl}"
-                    }
-
-                    authentication {
-                        basic(BasicAuthentication)
-                    }
-                }
-            }
+        if (project.version.endsWith('-SNAPSHOT')) {
+          url "${publishSnapshotUrl}"
+        } else {         
+          url "${publishReleaseUrl}"
         }
+
+        authentication {
+          basic(BasicAuthentication)
+        }
+      }
     }
+  }
+}
     
-    configurations.functionalTestImplementation.extendsFrom(configurations.testImplementation)
+configurations.functionalTestImplementation.extendsFrom(configurations.testImplementation)
     
-    tasks.register('functionalTest', Test) {
-   		testClassesDirs = sourceSets.functionalTest.output.classesDirs
-   		classpath = sourceSets.functionalTest.runtimeClasspath
-   		useJUnitPlatform()
-	}
+tasks.register('functionalTest', Test) {
+  testClassesDirs = sourceSets.functionalTest.output.classesDirs
+  classpath = sourceSets.functionalTest.runtimeClasspath
+  useJUnitPlatform()
+}
 
-	gradlePlugin.testSourceSets(sourceSets.functionalTest)
+gradlePlugin.testSourceSets(sourceSets.functionalTest)
 
-	tasks.named('check') {
-   		// Run the functional tests as part of `check`
-   		dependsOn(tasks.functionalTest)
-	}
+tasks.named('check') {
+  dependsOn(tasks.functionalTest)
+}
 
-	tasks.named('test') {
-   		useJUnitPlatform()
-	}
+tasks.named('test') {
+  useJUnitPlatform()
+}
     
-    eclipse {
-    	classpath {
-    		downloadSources=true
-    		downloadJavadoc=true
-    	}
-    }
+eclipse {
+  classpath {
+    downloadSources=true
+    downloadJavadoc=true
+  }
 }

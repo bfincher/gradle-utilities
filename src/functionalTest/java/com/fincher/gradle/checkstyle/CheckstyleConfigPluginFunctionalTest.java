@@ -22,7 +22,7 @@ import org.junit.jupiter.params.provider.ValueSource;
  */
 class CheckstyleConfigPluginFunctionalTest {
 
-	private static final String PLUGIN_ID = "com.fincher.gradle.java.checkstyle";
+	private static final String PLUGIN_ID = "com.fincher.java.checkstyle";
 	private static final List<String> PLUGIN_LINES = List.of("plugins {", "    id('" + PLUGIN_ID + "')",
 			"    id('java')", "}");
 
