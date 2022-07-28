@@ -73,18 +73,17 @@ pipeline {
       when { expression { performRelease || params.publish } }
       steps {
         script {
-          if (performRelease) {
-            withCredentials([sshUserPrivateKey(credentialsId: "bfincher_git_private_key", keyFileVariable: 'keyfile')]) {
-              sh 'echo keyfile = ${keyfile}'
-			  sh './gradlew finalizeRelease -PsshKeyFile=${keyfile} ' + gradleOpts
-            }
-          }
-          
-          if (performRelease || params.publish ) [
+          if (performRelease || params.publish ) {
             withCredentials([usernamePassword(credentialsId: 'nexus.fincherhome.com', usernameVariable: 'publishUsername', passwordVariable: 'publishPassword')]) {
               sh './gradlew publish -PpublishUsername=${publishUsername} -PpublishPassword=${publishPassword} ' + gradleOpts
             }
-          ]
+          }
+
+          if (performRelease) {
+            withCredentials([sshUserPrivateKey(credentialsId: "bfincher_git_private_key", keyFileVariable: 'keyfile')]) {
+			  sh './gradlew finalizeRelease -PsshKeyFile=${keyfile} ' + gradleOpts
+            }
+          }
         }
       }
     }
