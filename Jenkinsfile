@@ -9,7 +9,7 @@ properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKe
 disableConcurrentBuilds(), pipelineTriggers([[$class: 'PeriodicFolderTrigger', interval: '1d']])])
 
 pipeline {
-  agent any
+  agent { label 'docker-jdk11' }
 
   parameters {
     string(defaultValue: '', description: 'Extra Gradle Options', name: 'extraGradleOpts')
@@ -17,10 +17,6 @@ pipeline {
     booleanParam(name: 'minorRelease', defaultValue: false, description: 'Perform a minor release')
     booleanParam(name: 'patchRelease', defaultValue: false, description: 'Perform a patch release')
     booleanParam(name: 'publish', defaultValue: false, description: 'Publish to nexus')
-  }
-
-  tools {
-    jdk 'jdk11'
   }
 
   stages {
@@ -57,7 +53,7 @@ pipeline {
           sh "git config --global user.email 'brian@fincherhome.com' && git config --global user.name 'Brian Fincher'"
           
           if (performRelease) {
-            sh './gradlew prepareRelease ' + prepareReleaseOptions + ' ' + gradleOpts 
+            sh 'gradle prepareRelease ' + prepareReleaseOptions + ' ' + gradleOpts 
           }
         }
       }
@@ -65,7 +61,7 @@ pipeline {
 		
     stage('Build') {
       steps {
-        sh './gradlew clean build ' + gradleOpts
+        sh 'gradle clean build ' + gradleOpts
       }
     }
     
@@ -75,13 +71,13 @@ pipeline {
         script {
           if (performRelease || params.publish ) {
             withCredentials([usernamePassword(credentialsId: 'nexus.fincherhome.com', usernameVariable: 'publishUsername', passwordVariable: 'publishPassword')]) {
-              sh './gradlew publish -PpublishUsername=${publishUsername} -PpublishPassword=${publishPassword} ' + gradleOpts
+              sh 'gradle publish -PpublishUsername=${publishUsername} -PpublishPassword=${publishPassword} ' + gradleOpts
             }
           }
 
           if (performRelease) {
             withCredentials([sshUserPrivateKey(credentialsId: "bfincher_git_private_key", keyFileVariable: 'keyfile')]) {
-			  sh './gradlew finalizeRelease -PsshKeyFile=${keyfile} ' + gradleOpts
+			  sh 'gradle finalizeRelease -PsshKeyFile=${keyfile} ' + gradleOpts
             }
           }
         }
