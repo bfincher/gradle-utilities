@@ -1,12 +1,6 @@
 def performRelease = false
-def gradleOpts = "-s"
-gradleOpts += " --build-cache"
-gradleOpts += " -PlocalNexus=https://nexus.fincherhome.com/nexus/content/groups/public"
-gradleOpts += " -PpublishSnapshotUrl=https://nexus.fincherhome.com/nexus/content/repositories/snapshots"
-gradleOpts += " -PpublishReleaseUrl=https://nexus.fincherhome.com/nexus/content/repositories/releases"
-
-properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '10')), 
-disableConcurrentBuilds(), pipelineTriggers([[$class: 'PeriodicFolderTrigger', interval: '1d']])])
+def gradleOpts = "-s --build-cache -PlocalNexus=https://nexus.fincherhome.com/nexus/content/groups/public"
+def buildCacheDir = ""
 
 pipeline {
   agent { label 'docker-jdk11' }
@@ -17,12 +11,22 @@ pipeline {
     booleanParam(name: 'minorRelease', defaultValue: false, description: 'Perform a minor release')
     booleanParam(name: 'patchRelease', defaultValue: false, description: 'Perform a patch release')
     booleanParam(name: 'publish', defaultValue: false, description: 'Publish to nexus')
+    string(name: 'baseBuildCacheDir', defaultValue: '/cache', description: 'Base build cache dir')
+    string(name: 'buildCacheName', defaultValue: 'default', description: 'Build cache name')
+
   }
 
   stages {
     stage('Prepare') {
       steps {
         script {
+          
+          buildCacheDir = sh(
+              script: "src/main/resources/getBuildCache ${params.baseBuildCacheDir} ${params.buildCacheName}",
+              returnStdout: true)
+
+          gradleOpts = gradleOpts + " --gradle-user-home " + buildCacheDir
+
           def releaseOptionCount = 0;
           def prepareReleaseOptions = "";
           
@@ -55,13 +59,14 @@ pipeline {
           if (performRelease) {
             sh 'gradle prepareRelease ' + prepareReleaseOptions + ' ' + gradleOpts 
           }
+          
         }
       }
     }
 		
     stage('Build') {
       steps {
-        sh 'gradle clean build ' + gradleOpts
+        sh 'gradle clean build ' + gradleOpts     
       }
     }
     
@@ -69,9 +74,13 @@ pipeline {
       when { expression { performRelease || params.publish } }
       steps {
         script {
+          
           if (performRelease || params.publish ) {
+            def publishParams = '-PpublishUsername=${publishUsername} -PpublishPassword=${publishPassword}'
+            publishParams += ' -PpublishSnapshotUrl=https://nexus.fincherhome.com/nexus/content/repositories/snapshots'
+            publishParams += ' -PpublishReleaseUrl=https://nexus.fincherhome.com/nexus/content/repositories/releases'
             withCredentials([usernamePassword(credentialsId: 'nexus.fincherhome.com', usernameVariable: 'publishUsername', passwordVariable: 'publishPassword')]) {
-              sh 'gradle publish -PpublishUsername=${publishUsername} -PpublishPassword=${publishPassword} ' + gradleOpts
+              sh "gradle publish  ${publishParams} -s --build-cache -PlocalNexus=https://nexus.fincherhome.com/nexus/content/groups/public"
             }
           }
 
@@ -80,8 +89,16 @@ pipeline {
 			  sh 'gradle finalizeRelease -PsshKeyFile=${keyfile} ' + gradleOpts
             }
           }
+          
         }
       }
     }
   }
+
+  post {
+    always {
+      sh("src/main/resources/releaseBuildCache ${buildCacheDir}")
+    }
+  }
 }
+
