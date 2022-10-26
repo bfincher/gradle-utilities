@@ -27,6 +27,7 @@ class CheckstyleConfigPluginFunctionalTest {
 			"    id('java')", "}");
 
 	private Path projectDir;
+	private Path buildDir;
 	private Path buildFile;
 	private Path settingsFile;
 	private GradleRunner runner;
@@ -34,6 +35,7 @@ class CheckstyleConfigPluginFunctionalTest {
 	@BeforeEach
 	public void beforeEach() throws Exception {
 		projectDir = createEmptyDir(Paths.get("build", "testProjectDir"));
+		buildDir = projectDir.resolve("build");
 		Files.createDirectories(projectDir);
 		buildFile = projectDir.resolve("build.gradle");
 		runner = initRunner();
@@ -52,7 +54,7 @@ class CheckstyleConfigPluginFunctionalTest {
 	@ValueSource(strings = { "checkstyleMain", "checkstyleTest" })
 	public void test(String task) {
 		runWithArguments(task);
-		Path configFile = projectDir.resolve("config/checkstyle/checkstyle.xml");
+		Path configFile = buildDir.resolve("generated/checkstyleConfig/checkstyle.xml");
 		assertTrue(Files.exists(configFile));
 
 	}
