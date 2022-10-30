@@ -76,7 +76,7 @@ public class CheckstyleConfigPlugin implements Plugin<Project> {
 		});
 	}
 
-	private static void copyFileFromClasspathIfChanged(String source, Path dest) throws IOException {
+	public static boolean copyFileFromClasspathIfChanged(String source, Path dest) throws IOException {
 		List<String> sourceContents = readFileFromClassloader(source);
 		boolean copy = false;
 
@@ -89,7 +89,10 @@ public class CheckstyleConfigPlugin implements Plugin<Project> {
 
 		if (copy) {
 			Files.write(dest, sourceContents);
+			return true;
 		}
+		
+		return false;
 	}
 
 	private static List<String> readFileFromClassloader(String name) throws IOException {
