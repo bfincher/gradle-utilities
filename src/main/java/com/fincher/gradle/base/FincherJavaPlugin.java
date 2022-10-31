@@ -21,6 +21,7 @@ import org.gradle.plugins.ide.eclipse.model.EclipseModel;
 import org.gradle.testing.jacoco.plugins.JacocoPlugin;
 
 import com.diffplug.gradle.spotless.SpotlessExtension;
+import com.diffplug.gradle.spotless.SpotlessPlugin;
 import com.diffplug.spotless.LineEnding;
 import com.fincher.gradle.checkstyle.CheckstyleConfigPlugin;
 import com.fincher.gradle.eclipse.EclipseSettings;
@@ -68,7 +69,8 @@ public class FincherJavaPlugin implements Plugin<Project> {
     }
 
     private void configureSpotless(Project project) throws IOException {
-
+        project.getPluginManager().apply(SpotlessPlugin.class);
+        
         Path configDir = new File(project.getBuildDir(), "generated").toPath();
         Path formatterConfig = configDir.resolve("eclipse-formatter.xml");
         Path importOrderConfig = configDir.resolve("eclipse.importorder");
