@@ -1,18 +1,14 @@
 package com.fincher.gradle.base;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.function.BiFunction;
+import java.nio.file.Paths;
 
 import org.gradle.api.GradleException;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
-import org.gradle.api.Transformer;
 import org.gradle.api.plugins.JavaLibraryPlugin;
 import org.gradle.api.plugins.JavaPluginExtension;
-import org.gradle.api.provider.Provider;
 import org.gradle.api.publish.PublishingExtension;
 import org.gradle.api.publish.maven.MavenPublication;
 import org.gradle.api.tasks.testing.Test;
@@ -70,90 +66,20 @@ public class FincherJavaPlugin implements Plugin<Project> {
 
     private void configureSpotless(Project project) throws IOException {
         project.getPluginManager().apply(SpotlessPlugin.class);
+
+        Path tmpDir = Paths.get(System.getProperty("java.io.tmpdir"));
+        Path formatterConfig = tmpDir.resolve("eclipse-formatter.xml");
+        Path importOrderConfig = tmpDir.resolve("eclipse.importorder");
         
-        Path configDir = new File(project.getBuildDir(), "generated").toPath();
-        Path formatterConfig = configDir.resolve("eclipse-formatter.xml");
-        Path importOrderConfig = configDir.resolve("eclipse.importorder");
+        CheckstyleConfigPlugin.copyFileFromClasspathIfChanged("eclipse-formatter.xml", formatterConfig);
+        CheckstyleConfigPlugin.copyFileFromClasspathIfChanged("eclipse.importorder", importOrderConfig);
 
         SpotlessExtension extension = project.getExtensions().getByType(SpotlessExtension.class);
         extension.java(action -> {
-            action.importOrderFile(new FileProvider("eclipse.importorder", importOrderConfig));
+            action.importOrderFile(importOrderConfig);
             action.removeUnusedImports();
-            action.eclipse().configFile(new FileProvider("eclipse-formatter.xml", formatterConfig));
+            action.eclipse().configFile(formatterConfig);
             action.setLineEndings(LineEnding.UNIX);
         });
-    }
-
-    private static class FileProvider implements Provider<File> {
-
-        private final Path destFile;
-        private final String source;
-
-        FileProvider(String source, Path destFile) {
-            this.source = source;
-            this.destFile = destFile;
-        }
-
-        @Override
-        public File get() throws GradleException {
-            try {
-                Path parentDir = destFile.getParent();
-                if (!Files.exists(parentDir)) {
-                    Files.createDirectories(parentDir);
-                }
-
-                CheckstyleConfigPlugin.copyFileFromClasspathIfChanged(source, destFile);
-
-                return destFile.toFile();
-            } catch (IOException e) {
-                throw new GradleException(e.getMessage(), e);
-            }
-        }
-
-        @Override
-        public File getOrNull() {
-            return get();
-        }
-
-        @Override
-        public File getOrElse(File defaultValue) {
-            return get();
-        }
-
-        @Override
-        public <S> Provider<S> map(Transformer<? extends S, ? super File> transformer) {
-            throw new RuntimeException("Not implemented");
-        }
-
-        @Override
-        public <S> Provider<S> flatMap(Transformer<? extends Provider<? extends S>, ? super File> transformer) {
-            throw new RuntimeException("Not implemented");
-        }
-
-        @Override
-        public boolean isPresent() {
-            return true;
-        }
-
-        @Override
-        public Provider<File> orElse(File value) {
-            return this;
-        }
-
-        @Override
-        public Provider<File> orElse(Provider<? extends File> provider) {
-            return this;
-        }
-
-        @Override
-        public Provider<File> forUseAtConfigurationTime() {
-            return this;
-        }
-
-        @Override
-        public <U, R> Provider<R> zip(Provider<U> right, BiFunction<? super File, ? super U, ? extends R> combiner) {
-            throw new RuntimeException("Not implemented");
-        }
-
     }
 }
