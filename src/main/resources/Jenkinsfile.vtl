@@ -1,0 +1,109 @@
+#set ( $d = "$")
+def performRelease = false
+def gradleOpts = "$gradleOpts"
+def buildCacheDir = ""
+
+pipeline {
+  agent ${agent}
+
+  parameters {
+    string(defaultValue: '', description: 'Extra Gradle Options', name: 'extraGradleOpts')
+    booleanParam(name: 'majorRelease', defaultValue: false, description: 'Perform a major release')
+    booleanParam(name: 'minorRelease', defaultValue: false, description: 'Perform a minor release')
+    booleanParam(name: 'patchRelease', defaultValue: false, description: 'Perform a patch release')
+    booleanParam(name: 'publish', defaultValue: false, description: 'Publish to nexus')
+    string(name: 'baseBuildCacheDir', defaultValue: '/cache', description: 'Base build cache dir')
+    string(name: 'buildCacheName', defaultValue: 'default', description: 'Build cache name')
+${additionalParameters}
+  }
+  ${tools}
+  ${beforeStages}
+  stages {
+    stage('Prepare') {
+      steps {
+        script {
+          ${prePrepare}
+          sh "wget https://nexus.fincherhome.com/nexus/service/local/repositories/releases/content/com/fincher/gradle-cache/0.0.1/gradle-cache-0.0.1.tgz -O /tmp/gradle-cache.tgz"
+          sh "tar -zxf /tmp/gradle-cache.tgz --directory /tmp"
+
+          buildCacheDir = sh(
+              script: "/tmp/getBuildCache ${d}{params.baseBuildCacheDir} ${d}{params.buildCacheName}",
+              returnStdout: true)
+              
+          gradleOpts = gradleOpts + " --gradle-user-home " + buildCacheDir
+          
+          def releaseOptionCount = 0;
+          def prepareReleaseOptions = "";
+          
+          if (params.majorRelease) {
+            performRelease = true
+            prepareReleaseOptions = "--releaseType MAJOR"
+            releaseOptionCount++
+          }
+          if (params.minorRelease) {
+            performRelease = true
+            prepareReleaseOptions = "--releaseType MINOR"
+            releaseOptionCount++
+          }
+          if (params.patchRelease) {
+            performRelease = true
+            prepareReleaseOptions = "--releaseType PATCH"
+            releaseOptionCount++
+          }
+
+          if (releaseOptionCount > 1) {
+            error("Only one of major, minor, or patch release options can be selected")
+          }                         
+  
+          if (!params.extraGradleOpts.isEmpty()) {
+            gradleOpts = gradleOpts + " " + extraGradleOpts
+          }
+
+          sh "git config --global user.email '${gitUserEmail}' && git config --global user.name '${gitUserName}'"
+          
+          if (performRelease) {
+            sh '${gradleCmd} prepareRelease ' + prepareReleaseOptions + ' ' + gradleOpts 
+          }
+          ${postPrepare}
+        }
+      }
+    }
+	${preBuildStage}	
+    stage('Build') {
+      steps {
+${buildSteps}
+      }
+    }
+    ${postBuildStage}
+    stage('Finalize') {
+      when { expression { performRelease || params.publish } }
+      steps {
+        script {
+          ${preFinalizeSteps}
+          if (performRelease || params.publish ) {
+            def publishParams = '-PpublishUsername=${d}{publishUsername} -PpublishPassword=${d}{publishPassword}'
+            publishParams += ' -PpublishSnapshotUrl=${snapshotUrl}'
+            publishParams += ' -PpublishReleaseUrl=${releaseUrl}'
+            withCredentials([usernamePassword(credentialsId: 'nexus.fincherhome.com', usernameVariable: 'publishUsername', passwordVariable: 'publishPassword')]) {
+              sh "${gradleCmd} publish  ${d}{publishParams} ${d}{gradleOpts}"
+            }
+          }
+
+          if (performRelease) {
+            withCredentials([sshUserPrivateKey(credentialsId: "bfincher_git_private_key", keyFileVariable: 'keyfile')]) {
+			  sh '${gradleCmd} finalizeRelease -PsshKeyFile=${d}{keyfile} ' + gradleOpts
+            }
+          }
+          ${postFinalizeSteps}
+        }
+      }
+    }
+  }
+  
+  post {
+    always {
+      sh("/tmp/releaseBuildCache ${d}{buildCacheDir}")
+    }
+  }
+}
+${suffix}
