@@ -50,6 +50,7 @@ gradlePlugin {
 
 dependencies {
   implementation 'com.diffplug.spotless:spotless-plugin-gradle:6.11.0'
+  implementation 'org.apache.velocity:velocity:1.7'
   testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
   testImplementation 'org.junit.jupiter:junit-jupiter:5.8.1'
 }
