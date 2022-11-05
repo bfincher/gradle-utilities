@@ -11,7 +11,9 @@ import org.gradle.api.plugins.JavaLibraryPlugin;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.publish.PublishingExtension;
 import org.gradle.api.publish.maven.MavenPublication;
+import org.gradle.api.tasks.javadoc.Javadoc;
 import org.gradle.api.tasks.testing.Test;
+import org.gradle.external.javadoc.CoreJavadocOptions;
 import org.gradle.plugins.ide.eclipse.model.EclipseClasspath;
 import org.gradle.plugins.ide.eclipse.model.EclipseModel;
 import org.gradle.testing.jacoco.plugins.JacocoPlugin;
@@ -28,6 +30,7 @@ public class FincherJavaPlugin implements Plugin<Project> {
         project.getPluginManager().apply(FincherBasePlugin.class);
         project.getPluginManager().apply(CheckstyleConfigPlugin.class);
         configureJava(project);
+        configureJavadoc(project);
         configureEclipse(project);
         configurePublishing(project);
 
@@ -47,6 +50,16 @@ public class FincherJavaPlugin implements Plugin<Project> {
         javaExtension.withSourcesJar();
 
         project.getTasks().named("test", Test.class).configure(task -> task.useJUnitPlatform());
+    }
+    
+    private void configureJavadoc(Project project) {
+        project.getTasks().withType(Javadoc.class, task -> {
+            if (task.getOptions() instanceof CoreJavadocOptions) {
+                CoreJavadocOptions options = (CoreJavadocOptions) task.getOptions();
+                options.addStringOption("Xdoclint:none", "-quiet");
+//                options.addStringOption("-quiet");
+            }
+        });
     }
 
     private void configurePublishing(Project project) {
