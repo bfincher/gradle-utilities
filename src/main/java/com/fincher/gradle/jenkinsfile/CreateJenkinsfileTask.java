@@ -34,8 +34,8 @@ public abstract class CreateJenkinsfileTask extends DefaultTask {
 
         String defaultGradleOpts = "-s --build-cache";
 
-        if (project.hasProperty("localNexus")) {
-            defaultGradleOpts += " -PlocalNexus=" + project.findProperty("localNexus");
+        if (project.hasProperty("localNexusBaseUrl")) {
+            defaultGradleOpts += " -PlocalNexus=${localNexusBaseUrl}/nexus/content/groups/public";
         }
 
         getGradleOptions().convention(defaultGradleOpts);

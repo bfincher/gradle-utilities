@@ -3,6 +3,7 @@ buildscript {
     if (project.hasProperty('localNexus')) {
       maven {
         url "${localNexus}"
+        allowInsecureProtocol = true
       }
     } else {
       maven {
@@ -81,6 +82,7 @@ repositories {
   if (project.hasProperty('localNexus')) {
     maven {
       url "${localNexus}"
+      allowInsecureProtocol = true
     }
   } else {
     mavenCentral()

@@ -12,63 +12,76 @@ import org.gradle.api.publish.maven.plugins.MavenPublishPlugin;
 
 public class FincherBasePlugin implements Plugin<Project> {
 
-	public void apply(Project project) {
-		Object localNexus = project.findProperty("localNexus");
-		if (localNexus == null) {
-			project.getRepositories().mavenCentral();
-		} else {
-			project.getRepositories().maven(action -> action.setUrl(URI.create(localNexus.toString())));
-		}
+    private boolean allowInsecureProtocols = false;
 
-		project.getPluginManager().apply(BasePlugin.class);
+    public void apply(Project project) {
+        Object localNexus = project.findProperty("localNexus");
 
-		configurePublishing(project);
-	}
+        if (localNexus != null) {
+            allowInsecureProtocols = !localNexus.toString().contains("https");
 
-	private void configurePublishing(Project project) {
-		project.getPluginManager().apply(MavenPublishPlugin.class);
-		project.getRepositories().mavenLocal();
+            project.getRepositories().maven(action -> {
+                action.setUrl(URI.create(localNexus.toString()));
+                if (allowInsecureProtocols) {
+                    action.setAllowInsecureProtocol(true);
+                }
+            });
+        }
 
-		// Don't throw errors here if properties don't exist.
-		// Throw the exceptions after evaluating the task graph.
-		if (project.findProperty("publishUsername") != null &&
-				project.findProperty("publishPassword") != null &&
-				project.findProperty("publishSnapshotUrl") != null &&
-				project.findProperty("publishReleaseUrl") != null) {
-			PublishingExtension pe = project.getExtensions().getByType(PublishingExtension.class);
+        project.getRepositories().mavenCentral();
 
-			pe.getRepositories().maven(repo -> {
-				String uri = project
-						.findProperty(project.getVersion().toString().endsWith("-SNAPSHOT") ? "publishSnapshotUrl"
-								: "publishReleaseUrl")
-						.toString();
-				repo.setUrl(URI.create(uri));
+        project.getPluginManager().apply(BasePlugin.class);
 
-				repo.credentials(creds -> {
-					creds.setUsername(project.findProperty("publishUsername").toString());
-					creds.setPassword(project.findProperty("publishPassword").toString());
-				});
-			});
-		}
+        configurePublishing(project);
+    }
 
-		project.getGradle().getTaskGraph().whenReady(graph -> {
-			graph.getAllTasks().stream()
-					.filter(Task::getEnabled)
-					.filter(task -> task.getName().equals("publish"))
-					.forEach(task -> {
-						Objects.requireNonNull(project.findProperty("publishUsername"),
-								"The publishUsername property must be set when publishing").toString();
+    private void configurePublishing(Project project) {
+        project.getPluginManager().apply(MavenPublishPlugin.class);
+        project.getRepositories().mavenLocal();
 
-						Objects.requireNonNull(project.findProperty("publishPassword"),
-								"The publishPassword property must be set when publishing").toString();
+        // Don't throw errors here if properties don't exist.
+        // Throw the exceptions after evaluating the task graph.
+        if (project.findProperty("publishUsername") != null &&
+                project.findProperty("publishPassword") != null &&
+                project.findProperty("publishSnapshotUrl") != null &&
+                project.findProperty("publishReleaseUrl") != null) {
+            PublishingExtension pe = project.getExtensions().getByType(PublishingExtension.class);
 
-						Objects.requireNonNull(project.findProperty("publishSnapshotUrl"),
-								"The publishSnapshotUrl property must be set when publishing").toString();
+            pe.getRepositories().maven(repo -> {
+                String uri = project
+                        .findProperty(project.getVersion().toString().endsWith("-SNAPSHOT") ? "publishSnapshotUrl"
+                                : "publishReleaseUrl")
+                        .toString();
+                repo.setUrl(URI.create(uri));
+                if (allowInsecureProtocols) {
+                    repo.setAllowInsecureProtocol(true);
+                }
 
-						Objects.requireNonNull(project.findProperty("publishReleaseUrl"),
-								"The publishReleaseUrl property must be set when publishing").toString();
+                repo.credentials(creds -> {
+                    creds.setUsername(project.findProperty("publishUsername").toString());
+                    creds.setPassword(project.findProperty("publishPassword").toString());
+                });
+            });
+        }
 
-					});
-		});
-	}
+        project.getGradle().getTaskGraph().whenReady(graph -> {
+            graph.getAllTasks().stream()
+                    .filter(Task::getEnabled)
+                    .filter(task -> task.getName().equals("publish"))
+                    .forEach(task -> {
+                        Objects.requireNonNull(project.findProperty("publishUsername"),
+                                "The publishUsername property must be set when publishing").toString();
+
+                        Objects.requireNonNull(project.findProperty("publishPassword"),
+                                "The publishPassword property must be set when publishing").toString();
+
+                        Objects.requireNonNull(project.findProperty("publishSnapshotUrl"),
+                                "The publishSnapshotUrl property must be set when publishing").toString();
+
+                        Objects.requireNonNull(project.findProperty("publishReleaseUrl"),
+                                "The publishReleaseUrl property must be set when publishing").toString();
+
+                    });
+        });
+    }
 }
