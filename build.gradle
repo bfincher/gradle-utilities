@@ -107,6 +107,8 @@ publishing {
         authentication {
           basic(BasicAuthentication)
         }
+
+        allowInsecureProtocol = true
       }
     }
   }
