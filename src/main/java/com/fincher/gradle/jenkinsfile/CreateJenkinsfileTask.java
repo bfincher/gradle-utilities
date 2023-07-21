@@ -26,26 +26,6 @@ import org.gradle.api.tasks.TaskAction;
 
 public abstract class CreateJenkinsfileTask extends DefaultTask {
 
-    @Inject
-    public CreateJenkinsfileTask() {
-        Project project = getProject();
-        getGradleCommand().convention("gradle");
-        getOutputFile().convention(new File(project.getProjectDir(), "Jenkinsfile"));
-
-        String defaultGradleOpts = "-s --build-cache";
-
-        if (project.hasProperty("localNexusBaseUrl")) {
-            defaultGradleOpts += " -PlocalNexus=${localNexusBaseUrl}/nexus/content/groups/public";
-        }
-
-        getGradleOptions().convention(defaultGradleOpts);
-
-        setDefaultFromPropertyIfPresent("gitUserEmail", getGitUserEmail());
-        setDefaultFromPropertyIfPresent("gitUserName", getGitUserName());
-        setDefaultFromPropertyIfPresent("publishReleaseUrl", getPublishReleaseUrl());
-        setDefaultFromPropertyIfPresent("publishSnapshotUrl", getPublishSnapshotUrl());
-    }
-
     @Input
     public abstract Property<String> getGradleOptions();
 
@@ -111,9 +91,27 @@ public abstract class CreateJenkinsfileTask extends DefaultTask {
     @Optional
     public abstract RegularFileProperty getSuffixFile();
 
+    @Input
+    @Optional
+    public abstract Property<String> getLocalNexusBaseUrl();
+
     @OutputFile
     @Optional
     public abstract Property<File> getOutputFile();
+
+    @Inject
+    public CreateJenkinsfileTask() {
+        Project project = getProject();
+        getGradleCommand().convention("gradle");
+        getOutputFile().convention(new File(project.getProjectDir(), "Jenkinsfile"));
+
+        getGradleOptions().convention("-s --build-cache");
+
+        setDefaultFromPropertyIfPresent("gitUserEmail", getGitUserEmail());
+        setDefaultFromPropertyIfPresent("gitUserName", getGitUserName());
+        setDefaultFromPropertyIfPresent("publishReleaseUrl", getPublishReleaseUrl());
+        setDefaultFromPropertyIfPresent("publishSnapshotUrl", getPublishSnapshotUrl());
+    }
 
     @TaskAction
     public void generateFile() throws IOException {
@@ -121,7 +119,12 @@ public abstract class CreateJenkinsfileTask extends DefaultTask {
         ve.init();
         VelocityContext ctx = new VelocityContext();
 
-        ctx.put("gradleOpts", getGradleOptions().get());
+        String gradleOpts = getGradleOptions().get();
+        if (getLocalNexusBaseUrl().isPresent()) {
+            gradleOpts += String.format(" -PlocalNexus=%s/nexus/content/groups/public", getLocalNexusBaseUrl().get());
+        }
+
+        ctx.put("gradleOpts", gradleOpts);
         ctx.put("agent", getAgent().get());
         ctx.put("gitUserEmail", getGitUserEmail().get());
         ctx.put("gitUserName", getGitUserName().get());
