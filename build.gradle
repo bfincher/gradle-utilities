@@ -1,29 +1,30 @@
 buildscript {
   repositories {
+    mavenLocal()
     if (project.hasProperty('localNexus')) {
       maven {
         url "${localNexus}"
         allowInsecureProtocol = true
       }
     } else {
-      maven {
-        mavenCentral()
-      }
-    }
-
-    dependencies {
-      classpath 'com.fincher:gradle-release:0.1.0'
+      mavenCentral()
     }
   }
+
+  dependencies {
+    classpath 'com.fincher:gradle-release:1.0.1'
+  }
+}
+
+plugins {
+  id 'java-gradle-plugin'
+  id 'maven-publish'
+  id 'eclipse'
 }
 
 apply plugin: 'com.fincher.release'
 
 group = 'com.fincher'
-
-apply plugin: 'java-gradle-plugin'
-apply plugin: 'maven-publish'
-apply plugin: 'eclipse'
 
 gradlePlugin {
   plugins {
