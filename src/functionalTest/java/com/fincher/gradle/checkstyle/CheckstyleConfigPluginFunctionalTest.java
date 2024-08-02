@@ -41,8 +41,8 @@ class CheckstyleConfigPluginFunctionalTest {
 		runner = initRunner();
 
 		List<String> buildfileLines = new ArrayList<>(PLUGIN_LINES);
-		buildfileLines.add("project.tasks.checkstyleMain.dependsOn(" + CheckstyleConfigPlugin.taskName + ")");
-		buildfileLines.add("project.tasks.checkstyleTest.dependsOn(" + CheckstyleConfigPlugin.taskName + ")");
+		buildfileLines.add("project.tasks.checkstyleMain.dependsOn(" + CheckstyleConfigPlugin.TASK_NAME + ")");
+		buildfileLines.add("project.tasks.checkstyleTest.dependsOn(" + CheckstyleConfigPlugin.TASK_NAME + ")");
 
 		Files.write(buildFile, buildfileLines);
 

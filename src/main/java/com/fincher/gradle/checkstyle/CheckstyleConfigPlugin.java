@@ -24,9 +24,9 @@ import org.gradle.api.tasks.TaskContainer;
 
 public class CheckstyleConfigPlugin implements Plugin<Project> {
 
-	static final String taskName = "copyCheckstyleConfig";
+	static final String TASK_NAME = "copyCheckstyleConfig";
 
-	abstract static class CopyCheckstyleConfigTask extends DefaultTask {
+	public abstract static class CopyCheckstyleConfigTask extends DefaultTask {
 
 		Path configDir;
 
@@ -62,14 +62,14 @@ public class CheckstyleConfigPlugin implements Plugin<Project> {
 		checkstyleExtension.getConfigDirectory().convention(defaultConfigDir);
 
 		TaskContainer tasks = project.getTasks();
-		tasks.register(taskName, CopyCheckstyleConfigTask.class, task -> {
+		tasks.register(TASK_NAME, CopyCheckstyleConfigTask.class, task -> {
 			Path configDir = checkstyleExtension.getConfigDirectory().getAsFile().get().toPath();
 			task.setConfigDir(configDir);
 		});
 
 		tasks.withType(Checkstyle.class, task -> {
 			if (task.getName().equals("checkstyleMain")) {
-				task.dependsOn(taskName);
+				task.dependsOn(TASK_NAME);
 			} else if (task.getName().equals("checkstyleTest")) {
 				task.setEnabled(false);
 			}

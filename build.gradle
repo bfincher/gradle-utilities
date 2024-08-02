@@ -4,7 +4,7 @@ buildscript {
     if (project.hasProperty('localNexus')) {
       maven {
         url "${localNexus}"
-        allowInsecureProtocol = true
+        allowInsecureProtocol true
       }
     } else {
       mavenCentral()
@@ -20,6 +20,7 @@ plugins {
   id 'java-gradle-plugin'
   id 'maven-publish'
   id 'eclipse'
+  id 'name.remal.sonarlint' version '4.2.6'
 }
 
 apply plugin: 'com.fincher.release'
@@ -83,7 +84,7 @@ repositories {
   if (project.hasProperty('localNexus')) {
     maven {
       url "${localNexus}"
-      allowInsecureProtocol = true
+      allowInsecureProtocol true
     }
   } else {
     mavenCentral()
@@ -103,7 +104,8 @@ publishing {
           url "${publishSnapshotUrl}"
         } else {         
           url "${publishReleaseUrl}"
-        }
+        }    
+        allowInsecureProtocol true
 
         authentication {
           basic(BasicAuthentication)
