@@ -100,6 +100,7 @@ public abstract class CreateJenkinsfileTask extends DefaultTask {
     public abstract Property<File> getOutputFile();
 
     @Inject
+    @SuppressWarnings("squid:S5993")
     public CreateJenkinsfileTask() {
         Project project = getProject();
         getGradleCommand().convention("gradle");

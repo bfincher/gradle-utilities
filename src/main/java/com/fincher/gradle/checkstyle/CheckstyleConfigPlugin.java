@@ -31,6 +31,7 @@ public class CheckstyleConfigPlugin implements Plugin<Project> {
 		Path configDir;
 
 		@Inject
+		@SuppressWarnings("squid:S5993")
 		public CopyCheckstyleConfigTask() {
 		}
 
