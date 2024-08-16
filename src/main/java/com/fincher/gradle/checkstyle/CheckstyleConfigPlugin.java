@@ -59,7 +59,7 @@ public class CheckstyleConfigPlugin implements Plugin<Project> {
 		CheckstyleExtension checkstyleExtension = project.getExtensions().getByType(CheckstyleExtension.class);
 		
 		DirectoryProperty defaultConfigDir = project.getObjects().directoryProperty();
-		defaultConfigDir.set(new File(project.getBuildDir(), "generated/checkstyleConfig"));
+		defaultConfigDir.set(new File(project.getLayout().getBuildDirectory().getAsFile().get(), "generated/checkstyleConfig"));
 		checkstyleExtension.getConfigDirectory().convention(defaultConfigDir);
 
 		TaskContainer tasks = project.getTasks();

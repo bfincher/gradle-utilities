@@ -60,34 +60,34 @@ public abstract class CreateJenkinsfileTask extends DefaultTask {
     @Optional
     public abstract RegularFileProperty getBeforeStagesFile();
 
-    @Input
+    @InputFile
     @Optional
     public abstract RegularFileProperty getPrePrepareFile();
 
-    @Input
+    @InputFile
     @Optional
     public abstract RegularFileProperty getPostPrepareFile();
 
-    @Input
+    @InputFile
     @Optional
     public abstract RegularFileProperty getPreBuildStageFile();
 
     @Input
     public abstract ListProperty<String> getBuildSteps();
 
-    @Input
+    @InputFile
     @Optional
     public abstract RegularFileProperty getPostBuildStageFile();
 
-    @Input
+    @InputFile
     @Optional
     public abstract RegularFileProperty getPreFinalizeStepsFile();
 
-    @Input
+    @InputFile
     @Optional
     public abstract RegularFileProperty getPostFinalizeStepsFile();
 
-    @Input
+    @InputFile
     @Optional
     public abstract RegularFileProperty getSuffixFile();
 
