@@ -3,9 +3,10 @@ def baseNexusUrl = "http://nexus3:8081"
 def localNexus = "${baseNexusUrl}/repository/public"
 def gradleOpts = "-s --build-cache -PlocalNexus=${localNexus}"
 def buildCacheDir = ""
+def gradleCmd = './gradlew'
 
 pipeline {
-  agent { label 'docker-jdk11' }
+  agent { label 'docker-jdk17' }
 
   parameters {
     string(defaultValue: '', description: 'Extra Gradle Options', name: 'extraGradleOpts')
@@ -62,7 +63,7 @@ pipeline {
           sh "git config --global user.email 'brian@fincherhome.com' && git config --global user.name 'Brian Fincher'"
           
           if (performRelease) {
-            sh 'gradle prepareRelease ' + prepareReleaseOptions + ' ' + gradleOpts 
+            sh "$gradleCmd prepareRelease $prepareReleaseOptions $gradleOpts"
           }
           
         }
@@ -71,7 +72,7 @@ pipeline {
 		
     stage('Build') {
       steps {
-        sh 'gradle clean build ' + gradleOpts     
+        sh "$gradleCmd clean build $gradleOpts"
       }
     }
     
@@ -85,13 +86,13 @@ pipeline {
             publishParams += " -PpublishSnapshotUrl=${baseNexusUrl}/repository/snapshots"
             publishParams += " -PpublishReleaseUrl=${baseNexusUrl}/repository/releases"
             withCredentials([usernamePassword(credentialsId: 'nexus.fincherhome.com', usernameVariable: 'publishUsername', passwordVariable: 'publishPassword')]) {
-              sh "gradle publish ${gradleOpts} ${publishParams}" 
+              sh "${gradleCmd} publish ${publishParams} ${gradleOpts}" 
             }
           }
 
           if (performRelease) {
             withCredentials([sshUserPrivateKey(credentialsId: "bfincher_git_private_key", keyFileVariable: 'keyfile')]) {
-			  sh 'gradle finalizeRelease -PsshKeyFile=${keyfile} ' + gradleOpts
+              sh "${gradleCmd} finalizeRelease -PsshKeyFile=${keyfile} ${gradleOpts}"
             }
           }
           
