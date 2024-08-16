@@ -29,9 +29,7 @@ pipeline {
 
           buildCacheDir = sh(
               script: "/tmp/getBuildCache ${params.baseBuildCacheDir} ${params.buildCacheName}",
-              returnStdout: true)
-
-          gradleOpts = gradleOpts + " --gradle-user-home " + buildCacheDir
+              returnStdout: true).trim()
 
           def releaseOptionCount = 0;
           def prepareReleaseOptions = "";
@@ -61,16 +59,26 @@ pipeline {
           }
 
           sh "git config --global user.email 'brian@fincherhome.com' && git config --global user.name 'Brian Fincher'"
-          
-          if (performRelease) {
-            sh "$gradleCmd prepareRelease $prepareReleaseOptions $gradleOpts"
-          }
-          
+        }
+      }
+    }
+
+    stage('PrepareRelease') {
+      when { expression { performRelease } }
+      environment {
+        GRADLE_USER_HOME = "${buildCacheDir}"
+      }
+      steps {
+        script {
+          sh "$gradleCmd prepareRelease $prepareReleaseOptions $gradleOpts"
         }
       }
     }
 		
     stage('Build') {
+      environment {
+        GRADLE_USER_HOME = "${buildCacheDir}"
+      }
       steps {
         sh "$gradleCmd clean build $gradleOpts"
       }
@@ -78,6 +86,9 @@ pipeline {
     
     stage('Finalize') {
       when { expression { performRelease || params.publish } }
+      environment {
+        GRADLE_USER_HOME = "${buildCacheDir}"
+      }
       steps {
         script {
           
