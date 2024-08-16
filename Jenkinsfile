@@ -3,7 +3,8 @@ def baseNexusUrl = "http://nexus3:8081"
 def localNexus = "${baseNexusUrl}/repository/public"
 def gradleOpts = "-s --build-cache -PlocalNexus=${localNexus}"
 def buildCacheDir = ""
-def gradleCmd = './gradlew'
+def buildCacheSymlink = "/tmp/buildCache"
+def gradleCmd = 'gradle'
 
 pipeline {
   agent { label 'gradle-8.10-jdk17' }
@@ -19,6 +20,10 @@ pipeline {
 
   }
 
+  environment {
+    GRADLE_USER_HOME = "${buildCacheSymlink}"
+  }
+
   stages {
     stage('Prepare') {
       steps {
@@ -30,6 +35,15 @@ pipeline {
           buildCacheDir = sh(
               script: "/tmp/getBuildCache ${params.baseBuildCacheDir} ${params.buildCacheName}",
               returnStdout: true).trim()
+
+          sh """
+            if [ -e ${buildCacheSymlink} ]
+            then
+              rm ${buildCacheSymlink}
+            fi
+
+            ln -s ${buildCacheDir} ${buildCacheSymlink}
+          """
 
           def releaseOptionCount = 0;
           def prepareReleaseOptions = "";
@@ -59,26 +73,15 @@ pipeline {
           }
 
           sh "git config --global user.email 'brian@fincherhome.com' && git config --global user.name 'Brian Fincher'"
+
+          if (performRelease) {
+            sh "$gradleCmd prepareRelease $prepareReleaseOptions $gradleOpts"
+          }
         }
       }
     }
 
-    stage('PrepareRelease') {
-      when { expression { performRelease } }
-      environment {
-        GRADLE_USER_HOME = "${buildCacheDir}"
-      }
-      steps {
-        script {
-          sh "$gradleCmd prepareRelease $prepareReleaseOptions $gradleOpts"
-        }
-      }
-    }
-		
     stage('Build') {
-      environment {
-        GRADLE_USER_HOME = "${buildCacheDir}"
-      }
       steps {
         sh "$gradleCmd clean build $gradleOpts"
       }
@@ -86,9 +89,6 @@ pipeline {
     
     stage('Finalize') {
       when { expression { performRelease || params.publish } }
-      environment {
-        GRADLE_USER_HOME = "${buildCacheDir}"
-      }
       steps {
         script {
           
