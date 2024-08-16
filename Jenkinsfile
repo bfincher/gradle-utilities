@@ -6,7 +6,7 @@ def buildCacheDir = ""
 def gradleCmd = './gradlew'
 
 pipeline {
-  agent { label 'docker-jdk17' }
+  agent { label 'gradle-8.10-jdk17' }
 
   parameters {
     string(defaultValue: '', description: 'Extra Gradle Options', name: 'extraGradleOpts')
