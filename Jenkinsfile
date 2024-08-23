@@ -17,7 +17,6 @@ pipeline {
     booleanParam(name: 'publish', defaultValue: false, description: 'Publish to nexus')
     string(name: 'baseBuildCacheDir', defaultValue: '/cache', description: 'Base build cache dir')
     string(name: 'buildCacheName', defaultValue: 'default', description: 'Build cache name')
-
   }
 
   environment {
@@ -91,14 +90,11 @@ pipeline {
       when { expression { performRelease || params.publish } }
       steps {
         script {
-          
-          if (performRelease || params.publish ) {
-            def publishParams = '-PpublishUsername=${publishUsername} -PpublishPassword=${publishPassword}'
-            publishParams += " -PpublishSnapshotUrl=${baseNexusUrl}/repository/snapshots"
-            publishParams += " -PpublishReleaseUrl=${baseNexusUrl}/repository/releases"
-            withCredentials([usernamePassword(credentialsId: 'nexus.fincherhome.com', usernameVariable: 'publishUsername', passwordVariable: 'publishPassword')]) {
-              sh "${gradleCmd} publish ${publishParams} ${gradleOpts}" 
-            }
+          def publishParams = '-PpublishUsername=${publishUsername} -PpublishPassword=${publishPassword}'
+          publishParams += " -PpublishSnapshotUrl=${baseNexusUrl}/repository/snapshots"
+          publishParams += " -PpublishReleaseUrl=${baseNexusUrl}/repository/releases"
+          withCredentials([usernamePassword(credentialsId: 'nexus.fincherhome.com', usernameVariable: 'publishUsername', passwordVariable: 'publishPassword')]) {
+            sh "${gradleCmd} publish ${publishParams} ${gradleOpts}" 
           }
 
           if (performRelease) {

@@ -122,7 +122,7 @@ public abstract class CreateJenkinsfileTask extends DefaultTask {
 
         String gradleOpts = getGradleOptions().get();
         if (getLocalNexusBaseUrl().isPresent()) {
-            gradleOpts += String.format(" -PlocalNexus=%s/nexus/content/groups/public", getLocalNexusBaseUrl().get());
+            gradleOpts += String.format(" -PlocalNexus=%s/repository/public", getLocalNexusBaseUrl().get());
         }
 
         ctx.put("gradleOpts", gradleOpts);

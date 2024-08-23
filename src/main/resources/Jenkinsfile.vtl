@@ -1,6 +1,5 @@
 #set ( $d = "$")
 def performRelease = false
-def localNexusBaseUrl = 'http://nexus.dev:8081'
 def gradleOpts = "$gradleOpts"
 def buildCacheDir = ""
 
@@ -29,9 +28,9 @@ ${additionalParameters}
 
           buildCacheDir = sh(
               script: "/tmp/getBuildCache ${d}{params.baseBuildCacheDir} ${d}{params.buildCacheName}",
-              returnStdout: true)
+              returnStdout: true).trim()
               
-          gradleOpts = gradleOpts + " --gradle-user-home " + buildCacheDir.trim()
+          gradleOpts = gradleOpts + " --gradle-user-home " + buildCacheDir
           
           def releaseOptionCount = 0;
           def prepareReleaseOptions = "";
