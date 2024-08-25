@@ -142,6 +142,7 @@ public abstract class CreateJenkinsfileTask extends DefaultTask {
         ctx.put("postFinalizeSteps", getFileContent(getPostFinalizeStepsFile(), ""));
         ctx.put("suffix", getFileContent(getSuffixFile(), ""));
         ctx.put("tools", getTools().getOrElse(""));
+        ctx.put("localNexusBaseUrl", getLocalNexusBaseUrl().getOrElse("http://nexus3:8081"));
 
         ctx.put("buildSteps",
                 "        " + getBuildSteps().get().stream().collect(Collectors.joining("\n" + "        ")));
