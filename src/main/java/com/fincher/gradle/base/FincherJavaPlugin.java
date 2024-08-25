@@ -79,8 +79,8 @@ public class FincherJavaPlugin implements Plugin<Project> {
 
     private void configureJavadoc(Project project) {
         project.getTasks().withType(Javadoc.class, task -> {
-            if (task.getOptions() instanceof CoreJavadocOptions options) {
-                options.addStringOption("Xdoclint:none", "-quiet");
+            if (task.getOptions() instanceof CoreJavadocOptions) {
+                ((CoreJavadocOptions)task.getOptions()).addStringOption("Xdoclint:none", "-quiet");
             }
         });
     }

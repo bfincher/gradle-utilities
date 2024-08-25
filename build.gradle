@@ -12,8 +12,8 @@ buildscript {
   }
 
   dependencies {
-    classpath 'com.fincher:gradle-release:1.0.2'
-    classpath 'com.fincher:sonarlint:0.0.1-SNAPSHOT'
+    classpath 'com.fincher:gradle-release:1.0.3'
+    classpath 'com.fincher:sonarlint:0.0.2'
   }
 }
 
@@ -62,7 +62,7 @@ dependencies {
 
 java {
   toolchain {
-    languageVersion = JavaLanguageVersion.of(17)
+    languageVersion = JavaLanguageVersion.of(11)
   }
 }
 

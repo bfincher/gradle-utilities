@@ -7,7 +7,7 @@ def buildCacheSymlink = "/tmp/buildCache"
 def gradleCmd = 'gradle'
 
 pipeline {
-  agent { label 'gradle-8.10-jdk17' }
+  agent { label 'gradle-8.10-jdk11' }
 
   parameters {
     string(defaultValue: '', description: 'Extra Gradle Options', name: 'extraGradleOpts')
