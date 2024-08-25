@@ -60,34 +60,34 @@ public abstract class CreateJenkinsfileTask extends DefaultTask {
     @Optional
     public abstract RegularFileProperty getBeforeStagesFile();
 
-    @Input
+    @InputFile
     @Optional
     public abstract RegularFileProperty getPrePrepareFile();
 
-    @Input
+    @InputFile
     @Optional
     public abstract RegularFileProperty getPostPrepareFile();
 
-    @Input
+    @InputFile
     @Optional
     public abstract RegularFileProperty getPreBuildStageFile();
 
     @Input
     public abstract ListProperty<String> getBuildSteps();
 
-    @Input
+    @InputFile
     @Optional
     public abstract RegularFileProperty getPostBuildStageFile();
 
-    @Input
+    @InputFile
     @Optional
     public abstract RegularFileProperty getPreFinalizeStepsFile();
 
-    @Input
+    @InputFile
     @Optional
     public abstract RegularFileProperty getPostFinalizeStepsFile();
 
-    @Input
+    @InputFile
     @Optional
     public abstract RegularFileProperty getSuffixFile();
 
@@ -100,6 +100,7 @@ public abstract class CreateJenkinsfileTask extends DefaultTask {
     public abstract Property<File> getOutputFile();
 
     @Inject
+    @SuppressWarnings("squid:S5993")
     public CreateJenkinsfileTask() {
         Project project = getProject();
         getGradleCommand().convention("gradle");
@@ -121,7 +122,7 @@ public abstract class CreateJenkinsfileTask extends DefaultTask {
 
         String gradleOpts = getGradleOptions().get();
         if (getLocalNexusBaseUrl().isPresent()) {
-            gradleOpts += String.format(" -PlocalNexus=%s/nexus/content/groups/public", getLocalNexusBaseUrl().get());
+            gradleOpts += String.format(" -PlocalNexus=%s/repository/public", getLocalNexusBaseUrl().get());
         }
 
         ctx.put("gradleOpts", gradleOpts);

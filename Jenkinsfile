@@ -1,10 +1,13 @@
 def performRelease = false
-def localNexusBase = "http://nexus.dev:8081"
-def gradleOpts = "-s --build-cache -PlocalNexus=${localNexusBase}/nexus/content/groups/public"
+def baseNexusUrl = "http://nexus3:8081"
+def localNexus = "${baseNexusUrl}/repository/public"
+def gradleOpts = "-s --build-cache -PlocalNexus=${localNexus}"
 def buildCacheDir = ""
+def buildCacheSymlink = "/tmp/buildCache"
+def gradleCmd = 'gradle'
 
 pipeline {
-  agent { label 'docker-jdk11' }
+  agent { label 'gradle-8.10-jdk11' }
 
   parameters {
     string(defaultValue: '', description: 'Extra Gradle Options', name: 'extraGradleOpts')
@@ -14,7 +17,10 @@ pipeline {
     booleanParam(name: 'publish', defaultValue: false, description: 'Publish to nexus')
     string(name: 'baseBuildCacheDir', defaultValue: '/cache', description: 'Base build cache dir')
     string(name: 'buildCacheName', defaultValue: 'default', description: 'Build cache name')
+  }
 
+  environment {
+    GRADLE_USER_HOME = "${buildCacheSymlink}"
   }
 
   stages {
@@ -22,14 +28,21 @@ pipeline {
       steps {
         script {
           
-          sh "wget ${localNexusBase}/nexus/service/local/repositories/releases/content/com/fincher/gradle-cache/0.0.1/gradle-cache-0.0.1.tgz -O /tmp/gradle-cache.tgz"
+          sh "wget ${localNexus}/com/fincher/gradle-cache/0.0.1/gradle-cache-0.0.1.tgz -O /tmp/gradle-cache.tgz"
           sh "tar -zxf /tmp/gradle-cache.tgz --directory /tmp"
 
           buildCacheDir = sh(
               script: "/tmp/getBuildCache ${params.baseBuildCacheDir} ${params.buildCacheName}",
-              returnStdout: true)
+              returnStdout: true).trim()
 
-          gradleOpts = gradleOpts + " --gradle-user-home " + buildCacheDir
+          sh """
+            if [ -e ${buildCacheSymlink} ]
+            then
+              rm ${buildCacheSymlink}
+            fi
+
+            ln -s ${buildCacheDir} ${buildCacheSymlink}
+          """
 
           def releaseOptionCount = 0;
           def prepareReleaseOptions = "";
@@ -59,18 +72,17 @@ pipeline {
           }
 
           sh "git config --global user.email 'brian@fincherhome.com' && git config --global user.name 'Brian Fincher'"
-          
+
           if (performRelease) {
-            sh 'gradle prepareRelease ' + prepareReleaseOptions + ' ' + gradleOpts 
+            sh "$gradleCmd prepareRelease $prepareReleaseOptions $gradleOpts"
           }
-          
         }
       }
     }
-		
+
     stage('Build') {
       steps {
-        sh 'gradle clean build ' + gradleOpts     
+        sh "$gradleCmd clean build $gradleOpts"
       }
     }
     
@@ -78,19 +90,16 @@ pipeline {
       when { expression { performRelease || params.publish } }
       steps {
         script {
-          
-          if (performRelease || params.publish ) {
-            def publishParams = '-PpublishUsername=${publishUsername} -PpublishPassword=${publishPassword}'
-            publishParams += " -PpublishSnapshotUrl=${localNexusBase}/nexus/content/repositories/snapshots"
-            publishParams += " -PpublishReleaseUrl=${localNexusBase}/nexus/content/repositories/releases"
-            withCredentials([usernamePassword(credentialsId: 'nexus.fincherhome.com', usernameVariable: 'publishUsername', passwordVariable: 'publishPassword')]) {
-              sh "gradle publish  ${publishParams} -s --build-cache -PlocalNexus=${localNexusBase}/nexus/content/groups/public"
-            }
+          def publishParams = '-PpublishUsername=${publishUsername} -PpublishPassword=${publishPassword}'
+          publishParams += " -PpublishSnapshotUrl=${baseNexusUrl}/repository/snapshots"
+          publishParams += " -PpublishReleaseUrl=${baseNexusUrl}/repository/releases"
+          withCredentials([usernamePassword(credentialsId: 'nexus.fincherhome.com', usernameVariable: 'publishUsername', passwordVariable: 'publishPassword')]) {
+            sh "${gradleCmd} publish ${publishParams} ${gradleOpts}" 
           }
 
           if (performRelease) {
             withCredentials([sshUserPrivateKey(credentialsId: "bfincher_git_private_key", keyFileVariable: 'keyfile')]) {
-			  sh 'gradle finalizeRelease -PsshKeyFile=${keyfile} ' + gradleOpts
+              sh "${gradleCmd} finalizeRelease -PsshKeyFile=${keyfile} ${gradleOpts}"
             }
           }
           

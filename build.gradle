@@ -1,29 +1,32 @@
 buildscript {
   repositories {
+    mavenLocal()
     if (project.hasProperty('localNexus')) {
       maven {
         url "${localNexus}"
-        allowInsecureProtocol = true
+        allowInsecureProtocol true
       }
     } else {
-      maven {
-        mavenCentral()
-      }
+      mavenCentral()
     }
+  }
 
-    dependencies {
-      classpath 'com.fincher:gradle-release:0.1.0'
-    }
+  dependencies {
+    classpath 'com.fincher:gradle-release:1.0.3'
+    classpath 'com.fincher:sonarlint:0.0.2'
   }
 }
 
+plugins {
+  id 'java-gradle-plugin'
+  id 'maven-publish'
+  id 'eclipse'
+}
+
 apply plugin: 'com.fincher.release'
+apply plugin: 'com.fincher.sonarlint'
 
 group = 'com.fincher'
-
-apply plugin: 'java-gradle-plugin'
-apply plugin: 'maven-publish'
-apply plugin: 'eclipse'
 
 gradlePlugin {
   plugins {
@@ -52,6 +55,7 @@ gradlePlugin {
 dependencies {
   implementation 'com.diffplug.spotless:spotless-plugin-gradle:6.11.0'
   implementation 'org.apache.velocity:velocity:1.7'
+  api 'com.fincher:sonarlint:0.0.1-SNAPSHOT'
   testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
   testImplementation 'org.junit.jupiter:junit-jupiter:5.8.1'
 }
@@ -82,7 +86,7 @@ repositories {
   if (project.hasProperty('localNexus')) {
     maven {
       url "${localNexus}"
-      allowInsecureProtocol = true
+      allowInsecureProtocol true
     }
   } else {
     mavenCentral()
@@ -102,7 +106,8 @@ publishing {
           url "${publishSnapshotUrl}"
         } else {         
           url "${publishReleaseUrl}"
-        }
+        }    
+        allowInsecureProtocol true
 
         authentication {
           basic(BasicAuthentication)
@@ -124,6 +129,15 @@ tasks.register('functionalTest', Test) {
 
 gradlePlugin.testSourceSets(sourceSets.functionalTest)
 
+tasks.named('sonarlintFunctionalTest') {
+  enabled = false
+}
+
+sonarlint {
+  reports {
+    html { enabled = true }
+  }
+}
 tasks.named('check') {
   dependsOn(tasks.functionalTest)
 }
@@ -162,4 +176,9 @@ plugins.withType(EclipsePlugin) {
             }
         }
     }
+}
+
+tasks.named('wrapper') {
+    distributionType = Wrapper.DistributionType.ALL
+    distributionBase
 }
