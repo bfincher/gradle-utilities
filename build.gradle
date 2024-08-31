@@ -12,8 +12,8 @@ buildscript {
   }
 
   dependencies {
-    classpath 'com.fincher:gradle-release:1.0.3'
-    classpath 'com.fincher:sonarlint:0.0.2'
+    classpath libs.fincher.gradle.release
+    classpath libs.fincher.sonarlint
   }
 }
 
@@ -50,14 +50,6 @@ gradlePlugin {
        implementationClass = "com.fincher.gradle.base.FincherJavaPlugin"
      }
   }
-}
-
-dependencies {
-  implementation 'com.diffplug.spotless:spotless-plugin-gradle:6.11.0'
-  implementation 'org.apache.velocity:velocity:1.7'
-  api 'com.fincher:sonarlint:0.0.1-SNAPSHOT'
-  testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
-  testImplementation 'org.junit.jupiter:junit-jupiter:5.8.1'
 }
 
 java {
@@ -120,7 +112,17 @@ publishing {
 }
     
 configurations.functionalTestImplementation.extendsFrom(configurations.testImplementation)
-    
+
+dependencies {
+  implementation libs.spotless.plugin.gradle
+  implementation libs.velocity
+  api libs.fincher.sonarlint
+  testImplementation libs.junit5.api
+  testRuntimeOnly libs.junit5.engine
+  functionalTestImplementation libs.junit5.params
+  functionalTestRuntimeOnly libs.junit5.engine
+}
+
 tasks.register('functionalTest', Test) {
   testClassesDirs = sourceSets.functionalTest.output.classesDirs
   classpath = sourceSets.functionalTest.runtimeClasspath

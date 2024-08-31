@@ -1,0 +1,16 @@
+dependencyResolutionManagement {	
+	repositories {
+    	mavenLocal()
+
+    	maven {
+      		url "${localNexus}"
+      		allowInsecureProtocol = true
+      	}
+    }
+    	
+    versionCatalogs {
+        libs {
+            from("com.fincher:version-catalog:0.0.4")
+        }
+    }
+}
