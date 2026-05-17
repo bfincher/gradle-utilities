@@ -10,7 +10,7 @@ dependencyResolutionManagement {
     	
     versionCatalogs {
         libs {
-            from("com.fincher:version-catalog:0.0.4")
+            from("com.fincher:version-catalog:0.0.6")
         }
     }
 }
